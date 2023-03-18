@@ -4,6 +4,8 @@ import re
 import sys
 
 
+NO_STENO_MAPPING = 'NO_STENO_MAPPING'
+
 class Syllable:
     def __init__(self, onset, nucleus, coda):
         self.onset = onset
@@ -251,6 +253,163 @@ def can_prepend_to_onset(phoneme, onset):
     return False
 
 
+def syllables_to_steno(syllables):
+    vowel_to_steno = {
+        'ɪ': 'EU',
+        'ɛ': 'E',
+        'æ': 'A',
+        'ə': 'U',
+        'ʊ': 'AO',
+        'i': 'AOE',
+        'ɔ': 'AU',
+        'u': 'AOU',
+        'ɝ': 'UR',
+        'ɑ': 'O',
+        'aɪ': 'AOEU',
+        'eɪ': 'AEU',
+        'ɔɪ': 'OI',
+        'aʊ': 'OU',
+        'oʊ': 'OE',
+        'ɪɹ': 'AOER',
+        'ɛɹ': 'AEUR',
+        'ɔɹ': 'OR',
+        'ʊɹ': 'AOUR',
+        'ɑɹ': 'AR',
+    }
+    left_consonant_to_steno = {
+        'b': 'PW',
+        'd': 'TK',
+        'f': 'TP',
+        'h': 'H',
+        'j': 'Y',
+        'k': 'K',
+        'm': 'PH',
+        'n': 'TPH',
+        'p': 'P',
+        's': 'S',
+        't': 'T',
+        'v': 'SR',
+        'w': 'W',
+        'z': 'SWR',
+        'ð': 'TH',
+        'ŋ': NO_STENO_MAPPING,
+        'ɡ': 'TKPW',
+        'ɫ': 'HR',
+        'ɹ': 'R',
+        'ʃ': 'SH',
+        'ʒ': 'SKH',
+        'θ': 'TH',
+        'tʃ': 'KH',
+        'dʒ': 'SKWR',
+    }
+    right_consonant_to_steno = {
+        'b': 'B',
+        'd': 'D',
+        'f': 'F',
+        'h': NO_STENO_MAPPING,
+        'j': NO_STENO_MAPPING,
+        'k': 'BG',
+        'm': 'PL',
+        'n': 'PB',
+        'p': 'P',
+        's': ['S', 'F', '*S'],
+        't': 'T',
+        'v': 'FB',
+        'w': NO_STENO_MAPPING,
+        'z': 'Z',
+        'ð': '*T',
+        'ŋ': 'PBG',
+        'ɡ': 'G',
+        'ɫ': 'L',
+        'ɹ': 'R',
+        'ʃ': 'RB',
+        'ʒ': NO_STENO_MAPPING,
+        'θ': '*T',
+        'tʃ': 'FP',
+        'dʒ': 'PBLG',
+    }
+
+    translations = []  # List of all ways to stroke the syllable sequence.
+
+    for i, syllable in enumerate(syllables):
+        ways_to_stroke_onset = build_stroke(syllable.onset, left_consonant_to_steno)
+        ways_to_stroke_nucleus = build_stroke([syllable.nucleus], vowel_to_steno)
+        ways_to_stroke_coda = build_stroke(syllable.coda, right_consonant_to_steno)
+
+        if ways_to_stroke_onset is None or \
+           ways_to_stroke_nucleus is None or \
+           ways_to_stroke_coda is None:
+            # There's no way to stroke this syllable.
+            return None
+
+        # Combine the parts of the stroke.
+        # First add the onset parts of the stroke.
+        ways_to_stroke_syllable = ways_to_stroke_onset.copy()
+
+        # Next add the nucleus of the stroke.
+        temp = []
+        for partial_stroke in ways_to_stroke_syllable:
+            for nucleus_part in ways_to_stroke_nucleus:
+                temp.append(partial_stroke + nucleus_part)
+        ways_to_stroke_syllable = temp.copy()
+
+        # Finally add the coda of the stroke.
+        temp.clear()
+        for partial_stroke in ways_to_stroke_syllable:
+            for coda_part in ways_to_stroke_coda:
+                temp.append(partial_stroke + coda_part)
+        ways_to_stroke_syllable = temp.copy()
+
+        if i == 0:
+            translations = ways_to_stroke_syllable
+        else:
+            new_translations = []
+            for prev_strokes in translations:
+                for stroke in ways_to_stroke_syllable:
+                    new_translations.append(prev_strokes + '/' + stroke)
+
+            translations = new_translations
+
+    return translations
+
+
+def build_stroke(phonemes, phonemes_to_steno):
+    ways_to_stroke = ['']
+
+    for i, phoneme in enumerate(phonemes):
+        steno = phonemes_to_steno[phoneme]
+        if steno == NO_STENO_MAPPING:
+            print(f'Warning: No steno mapping for phoneme {phoneme} in {[str(s) for s in syllables]}', file=sys.stderr)
+            return None
+        elif isinstance(steno, list):
+            new_ways_to_stroke = []
+            for keys in steno:
+                for partial_stroke in ways_to_stroke:
+                    new_ways_to_stroke.append(partial_stroke + keys)
+
+            ways_to_stroke = new_ways_to_stroke
+        else:
+            for i in range(len(ways_to_stroke)):
+                ways_to_stroke[i] += steno
+
+    return ways_to_stroke
+
+
+# Clean up the stroke so it's valid for a steno dictionary. The provided
+# stroke may have repeated letters, any number of *'s in any position, and
+# may lack the `-` when no vowels are included.
+def stroke_to_valid_steno(stroke):
+    star = ('*' in stroke)
+    contains_vowel = False
+
+    for vowel in ['A', 'O', 'E', 'U']:
+        if vowel in stroke:
+            contains_vowel = True
+
+    # TODO
+    pass
+
+
 def get_args():
     # Create an ArgumentParser object.
     parser = argparse.ArgumentParser(description='Generate steno strokes phonetically.')
@@ -273,7 +432,6 @@ def main():
 
     with open(args.word_list_file, 'r') as file:
         for line in file:
-    #    for line in ['information']:
             word = line.strip()
 
             print(f'{word}')
@@ -282,8 +440,9 @@ def main():
                 if syllables is None:
                     continue
                 s = [str(syll) for syll in syllables]
-#                s = [syll.str_debug() for syll in syllables]
-                print(f'\t{"/".join(s)}')
+                print(f'\t{"/".join(s)}', end=' -> ')
+                steno = syllables_to_steno(syllables)
+                print(f'{", ".join(steno)}')
 
 
 if __name__ == '__main__':
