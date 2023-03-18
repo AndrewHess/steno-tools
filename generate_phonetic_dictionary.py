@@ -19,7 +19,7 @@ class Syllable:
         onset = ''.join(self.onset)
         coda = ''.join(self.coda)
         return f'{onset + self.nucleus + coda}'
-
+ 
 
 def create_ipa_lookup_dictionary(filename):
     word_to_ipa = {}
@@ -179,7 +179,7 @@ def split_ipa_into_syllables(ipa):
         # Try to prepend each element of `onset_lst` to `new_onset`, but
         # comply with English orthography rules.
         for k, phoneme in enumerate(onset_lst):
-            if orthography_allows_prepend(phoneme, new_onset):
+            if can_prepend_to_onset(phoneme, new_onset):
                 new_onset = [phoneme] + new_onset
             else:
                 if i == 0:
@@ -187,7 +187,7 @@ def split_ipa_into_syllables(ipa):
                     print(f'Warning: unable to assign leading consonants for {ipa}')
                     return None
 
-                # We can't prepend this phenome to the syllable, so give
+                # We can't prepend this phoneme to the syllable, so give
                 # all the unused phonems to the previous syllable's coda.
                 assert(i > 0)
                 syllables[i - 1].coda = onset_lst[k:]
@@ -199,15 +199,56 @@ def split_ipa_into_syllables(ipa):
     return syllables
 
 
-def orthography_allows_prepend(phenome, existing_sounds):
-    if existing_sounds == []:
-        return True
+def can_prepend_to_onset(phoneme, onset):
+    consonant_phonemes = ['b', 'd', 'f', 'h', 'j', 'k', 'm', 'n', 'p', 's', \
+            't', 'v', 'w', 'z', 'ð', 'ŋ', 'ɡ', 'ɫ', 'ɹ', 'ʃ', 'ʒ', 'θ', \
+            'tʃ', 'dʒ']
 
-    prev = existing_sounds[0]
-    if phenome == 'n' and prev not in ['s']:
+    if phoneme not in consonant_phonemes:
+        print(f'Unknown consonant phoneme: {phoneme}')
+        return False
+    
+    # English syllable structure is (C)^{3}V(C)^{5}, so no more than three
+    # consonant sounds in the onset.
+    if len(onset) >= 3:
         return False
 
-    return True
+    # All following rules are from https://en.wikipedia.org/wiki/English_phonology
+    if onset == []:
+        return phoneme != 'ŋ'
+
+    prev = onset[0]
+
+    # Allow stop plus approximant other than 'j'.
+    if (prev == 'ɫ' and phoneme in ['p', 'b', 'k', 'ɡ']) or \
+       (prev == 'ɹ' and phoneme in ['p', 'b', 't', 'ɹ', 'd', 'k', 'ɡ']) or \
+       (prev == 'w' and phoneme in ['p', 't', 'd', 'g', 'k']):
+        return True
+
+    # Allow voicless fricative or 'v' plus approximant other than 'j'.
+    if (prev == 'ɫ' and phoneme in ['f', 's', 'θ', 'ʃ']) or \
+       (prev == 'ɹ' and phoneme in ['f', 'θ', 'ʃ']) or \
+       (prev == 'w' and phoneme in ['h', 's', 'θ', 'v']):
+        return True
+
+    # Allow consonants other than 'ɹ' and 'w' followed by 'j' (which should
+    # be followed by some form of 'u').
+    if len(onset) == 1 and prev == 'j' and phoneme not in ['ɹ', 'w']:
+        return True
+
+    # Allow 's' plus voiceless stop:
+    if phoneme == 's' and prev in ['s', 'p', 'k']:
+        return True
+
+    # Allow 's' plus nasal other than 'ŋ'.
+    if phoneme == 's' and prev in ['m', 'n']:
+        return True
+
+    # Allow 's' plus voiceless non-sibilant fricative:
+    if phoneme == 's' and prev in ['f', 'θ']:
+        return True
+
+    return False
 
 
 def get_args():
@@ -240,8 +281,8 @@ def main():
                 syllables = split_ipa_into_syllables(ipa)
                 if syllables is None:
                     continue
-#                s = [str(syll) for syll in syllables]
-                s = [syll.str_debug() for syll in syllables]
+                s = [str(syll) for syll in syllables]
+#                s = [syll.str_debug() for syll in syllables]
                 print(f'\t{"/".join(s)}')
 
 
