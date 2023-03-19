@@ -1,52 +1,5 @@
-import random
-import sys
-
-
-STENO_ORDER = 'STKPWHRAOEUFRPBLGTSDZ'
-NO_STENO_MAPPING = 'NO_STENO_MAPPING'
-
-def create_ipa_lookup_dictionary(filename):
-    word_to_ipa = {}
-    try:
-        with open(filename, newline='') as csv_file:
-            for line in csv_file:
-                (key, value) = extract_key_and_value(line)
-                word_to_ipa[key] = value
-
-    except FileNotFoundError:
-        print(f'The file `{filename}` does not exist.', file=sys.stderr)
-        sys.exit(1)
-
-    return word_to_ipa
-
-
-def extract_key_and_value(line):
-    split_line = line.strip().split(',', 1)  # Only split at the first comma.
-    key = split_line[0]
-
-    # Each value is between a pair of slashes.
-    split_value = split_line[1].split('/')
-    # Extract every second element.
-    return (key, split_value[1::2])
-
-
-# Find all the IPA symbols used by this dictionary.
-def get_ipa_symbols(word_to_ipa):
-    # Check the IPA symbols used in a bunch of random words.
-    num_words_to_check = 10000
-
-    words = []
-    keys = list(word_to_ipa.keys())
-    for _ in range(num_words_to_check):
-        words.append(random.choice(keys))
-
-    symbols = set()
-    for word in words:
-        for ipa in word_to_ipa[word]:
-            for char in ipa:
-                symbols.add(char)
-
-    return symbols
+import config
+import ipa_utils
 
 
 # Each of the parameters is a list of keys to stroke. Each element of each
@@ -112,9 +65,9 @@ def build_stroke_helper(components):
                 # the letter in the returned steno stroke.
                 continue
 
-            order_pos = STENO_ORDER.find(letter, order_pos)
+            order_pos = config.STENO_ORDER.find(letter, order_pos)
             if order_pos == -1:
-                if letter in STENO_ORDER:
+                if letter in config.STENO_ORDER:
                     # The letter is out of steno order.
                     return None
                 else:
@@ -134,7 +87,7 @@ def get_stroke_components(phonemes, phonemes_to_steno):
         steno = phonemes_to_steno[phoneme]
         if steno is None:
             print(f'Warning: No mapping given for phoneme {phoneme} in {phonemes}')
-        elif steno == NO_STENO_MAPPING:
+        elif steno == config.NO_STENO_MAPPING:
             print(f'Warning: No steno mapping for phoneme {phoneme} in {phonemes}')
             return None
         elif isinstance(steno, list):
@@ -149,3 +102,69 @@ def get_stroke_components(phonemes, phonemes_to_steno):
                 ways_to_stroke[i] += [steno]
 
     return ways_to_stroke
+
+
+def syllables_to_steno(syllables):
+    translations = []  # List of all ways to stroke the syllable sequence.
+
+    for i, syllable in enumerate(syllables):
+        ways_to_stroke_onset = get_stroke_components(syllable.onset, config.LEFT_CONSONANT_TO_STENO)
+        ways_to_stroke_nucleus = get_stroke_components([syllable.nucleus], config.VOWEL_TO_STENO)
+        ways_to_stroke_coda = get_stroke_components(syllable.coda, config.RIGHT_CONSONANT_TO_STENO)
+
+        if ways_to_stroke_onset is None or \
+           ways_to_stroke_nucleus is None or \
+           ways_to_stroke_coda is None:
+            # There's no way to stroke this syllable.
+            return None
+
+        # Combine the parts of the stroke.
+        # First add the onset parts of the stroke.
+        ways_to_stroke_syllable = ways_to_stroke_onset.copy()
+
+        # Next add the nucleus of the stroke.
+        temp = []
+        for partial_stroke in ways_to_stroke_syllable:
+            for nucleus_part in ways_to_stroke_nucleus:
+                temp.append(partial_stroke + nucleus_part)
+        ways_to_stroke_syllable = temp.copy()
+
+        # Finally add the coda of the stroke.
+        temp.clear()
+        for partial_stroke in ways_to_stroke_syllable:
+            for coda_part in ways_to_stroke_coda:
+                temp.append(partial_stroke + coda_part)
+        ways_to_stroke_syllable = temp.copy()
+
+        potential_strokes = []
+        for stroke_components in ways_to_stroke_syllable:
+            stroke = build_stroke_from_components(stroke_components)
+
+            if stroke is not None:
+                potential_strokes.append(stroke)
+
+        if len(potential_strokes) == 0:
+            print(f'No valid way to stroke the syllable `{syllable}`')
+            return None
+
+        if len(translations) == 0:
+            translations = potential_strokes
+        else:
+            new_translations = []
+            for prev_strokes in translations:
+                for stroke in potential_strokes:
+                    new_translations.append(prev_strokes + '/' + stroke)
+
+            translations = new_translations.copy()
+
+    # Run custom postprocessing.
+    new_translations = []
+    for steno in translations:
+        new_steno = config.postprocess_steno_sequence(steno, syllables)
+
+        if new_steno is not None:
+            new_translations.append(new_steno)
+
+    translations = new_translations
+
+    return translations
