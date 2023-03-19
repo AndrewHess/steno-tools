@@ -533,6 +533,23 @@ def postprocess_steno_sequence(steno_sequence, syllables_ipa):
     return '/'.join(new_syllables_steno)
 
 
+# Perform custom postprocessing after the entire dictionary's been generated.
+def postprocess_generated_dictionary(word_and_definitions):
+    # If a desired definition is already taken, append a 'W-B' stroke until
+    # it's unique.
+    used_definitions = set()
+
+    for i, (_, definitions) in enumerate(word_and_definitions):
+        for k, strokes in enumerate(definitions):
+            while strokes in used_definitions:
+                strokes += '/W-B'
+
+            definitions[k] = strokes
+            used_definitions.add(strokes)
+
+    return word_and_definitions
+
+
 def get_args():
     # Create an ArgumentParser object.
     parser = argparse.ArgumentParser(description='Generate steno strokes phonetically.')
@@ -580,6 +597,9 @@ def main():
                 print(f'Warning: No translation for `{word}`')
             else:
                 words_and_strokes.append((word, word_in_steno))
+
+    # Run postprocessing on the whole dictionary.
+    words_and_strokes = postprocess_generated_dictionary(words_and_strokes)
 
     with open(args.output_file, 'w+') as output:
         output.write('{\n')
