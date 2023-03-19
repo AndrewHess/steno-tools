@@ -573,6 +573,9 @@ def main():
                 if translations is not None:
                     word_in_steno += translations
 
+            # Remove duplicate steno sequences.
+            word_in_steno = list(set(word_in_steno))
+
             if len(word_in_steno) == 0:
                 print(f'Warning: No translation for `{word}`')
             else:
