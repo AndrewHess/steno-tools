@@ -93,6 +93,7 @@ def split_ipa_into_syllables(ipa):
     double_vowels.append('ɔɹ')  # Ex: gORe, bOAR, dOOR
     double_vowels.append('ʊɹ')  # Ex: pURe, ensURe
     double_vowels.append('ɑɹ')  # Ex: cAR, sonAR, ARctic
+    double_vowels.append('ju')  # Ex: YOU, fEW, pEWter
 
 #    triple_vowels = []
 #    triple_vowels.append('ʃən')  # Ex: ruSSIAN, addiTIONal, SHUNNed
@@ -110,6 +111,7 @@ def split_ipa_into_syllables(ipa):
     double_consonants = []
     double_consonants.append('tʃ')  # Ex: gliTCH, beaCH
     double_consonants.append('dʒ')  # Ex: JuDGe, friDGe, Germ
+    double_consonants.append('st')  # Ex: firST heiST, burST
     
     stress_markers = ['ˈ', 'ˌ']
 
@@ -241,7 +243,7 @@ def can_prepend_to_onset(phoneme, onset):
         return True
 
     # Allow 's' plus voiceless stop:
-    if phoneme == 's' and prev in ['s', 'p', 'k']:
+    if phoneme == 's' and prev in ['p', 't', 'k']:
         return True
 
     # Allow 's' plus nasal other than 'ŋ'.
@@ -250,6 +252,10 @@ def can_prepend_to_onset(phoneme, onset):
 
     # Allow 's' plus voiceless non-sibilant fricative:
     if phoneme == 's' and prev in ['f', 'θ']:
+        return True
+
+    ####################### Custom Rules #######################
+    if phoneme == 'st' and prev in ['p', 't', 'k', 'm', 'j', 'f', 'θ']:
         return True
 
     return False
@@ -264,7 +270,7 @@ def syllables_to_steno(syllables):
         'ʊ': 'AO',
         'i': 'AOE',
         'ɔ': 'AU',
-        'u': 'AOU',
+        'u': 'AOU',  # Note: this is the same as for 'ju'.
         'ɝ': 'UR',
         'ɑ': 'O',
         'aɪ': 'AOEU',
@@ -277,6 +283,7 @@ def syllables_to_steno(syllables):
         'ɔɹ': 'OR',
         'ʊɹ': 'AOUR',
         'ɑɹ': 'AR',
+        'ju': 'AOU',  # Note: this is the same as for just 'u'.
     }
     left_consonant_to_steno = {
         'b': 'PW',
@@ -303,6 +310,7 @@ def syllables_to_steno(syllables):
         'θ': 'TH',
         'tʃ': 'KH',
         'dʒ': 'SKWR',
+        'st': 'ST',
     }
     right_consonant_to_steno = {
         'b': 'B',
@@ -314,7 +322,7 @@ def syllables_to_steno(syllables):
         'm': 'PL',
         'n': 'PB',
         'p': 'P',
-        's': ['S', 'F', '*S'],
+        's': ['S', 'F'],
         't': 'T',
         'v': 'FB',
         'w': NO_STENO_MAPPING,
@@ -329,6 +337,7 @@ def syllables_to_steno(syllables):
         'θ': '*T',
         'tʃ': 'FP',
         'dʒ': 'PBLG',
+        'st': ['FT', '*S']
     }
 
     translations = []  # List of all ways to stroke the syllable sequence.
