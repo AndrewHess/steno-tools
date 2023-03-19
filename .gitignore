@@ -1,0 +1,10 @@
+# Mac files
+.DS_Store
+
+# Python caches
+__pycache__/
+
+# Vim files
+*~
+*.swp
+*.swo
