@@ -176,12 +176,11 @@ def split_ipa_into_syllables(ipa):
             marker = onset[match.start():match.end()]
             onset_lst.append(marker_to_phoneme[marker])
 
-        # Reverse the list so we can iterate it forwards.
-        onset_lst.reverse()
-
         # Try to prepend each element of `onset_lst` to `new_onset`, but
         # comply with English orthography rules.
-        for k, phoneme in enumerate(onset_lst):
+        # We need to iterate backwards since we'll be prepending.
+        for k in range(len(onset_lst) - 1, -1, -1):
+            phoneme = onset_lst[k]
             if can_prepend_to_onset(phoneme, new_onset):
                 new_onset = [phoneme] + new_onset
             else:
@@ -193,7 +192,7 @@ def split_ipa_into_syllables(ipa):
                 # We can't prepend this phoneme to the syllable, so give
                 # all the unused phonems to the previous syllable's coda.
                 assert(i > 0)
-                syllables[i - 1].coda = onset_lst[k:]
+                syllables[i - 1].coda = onset_lst[:k + 1]
                 break
 
         syllables[i].onset = new_onset
@@ -223,7 +222,7 @@ def can_prepend_to_onset(phoneme, onset):
 
     # Allow stop plus approximant other than 'j'.
     if (prev == 'ɫ' and phoneme in ['p', 'b', 'k', 'ɡ']) or \
-       (prev == 'ɹ' and phoneme in ['p', 'b', 't', 'ɹ', 'd', 'k', 'ɡ']) or \
+       (prev == 'ɹ' and phoneme in ['p', 'b', 't', 'd', 'k', 'ɡ']) or \
        (prev == 'w' and phoneme in ['p', 't', 'd', 'g', 'k']):
         return True
 
@@ -251,7 +250,7 @@ def can_prepend_to_onset(phoneme, onset):
         return True
 
     ####################### Custom Rules #######################
-    if phoneme == 'st' and prev in ['p', 't', 'k', 'm', 'j', 'f', 'θ']:
+    if phoneme == 'st' and prev in ['ɹ', 'w']:
         return True
 
     return False
