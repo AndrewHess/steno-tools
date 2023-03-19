@@ -23,7 +23,7 @@ class Syllable:
         onset = ''.join(self.onset)
         coda = ''.join(self.coda)
         return f'{onset + self.nucleus + coda}'
- 
+
 
 def create_ipa_lookup_dictionary(filename):
     word_to_ipa = {}
@@ -67,7 +67,7 @@ def get_ipa_symbols(word_to_ipa):
                 symbols.add(char)
 
     return symbols
-    
+
 
 def split_ipa_into_syllables(ipa):
     single_vowels = []
@@ -77,7 +77,7 @@ def split_ipa_into_syllables(ipa):
     single_vowels.append('ə')  # Ex: bUn, dOne, crUmb
     single_vowels.append('ʊ')  # Ex: wOOd, pUt
     single_vowels.append('i')  # Ex: bEE, mEAt
-    single_vowels.append('ɔ')  # Ex: brAWl, tAll, wrOUght, but not rot 
+    single_vowels.append('ɔ')  # Ex: brAWl, tAll, wrOUght, but not rot
     single_vowels.append('u')  # Ex: fOOd, whO, blUE
     single_vowels.append('ɝ')  # Ex: pURR, pERson, dIRty, doctOR
     single_vowels.append('ɑ')  # Ex: rOt, but not wrought
@@ -112,7 +112,7 @@ def split_ipa_into_syllables(ipa):
     double_consonants.append('tʃ')  # Ex: gliTCH, beaCH
     double_consonants.append('dʒ')  # Ex: JuDGe, friDGe, Germ
     double_consonants.append('st')  # Ex: firST heiST, burST
-    
+
     stress_markers = ['ˈ', 'ˌ']
 
     phonemes = single_vowels + double_vowels + single_consonants + double_consonants
@@ -145,9 +145,6 @@ def split_ipa_into_syllables(ipa):
         print(f'Warning: No syllables found for {ipa}', file=sys.stderr)
         return None
 
-#    s = [syll.str_debug() for syll in syllables]
-#    print(f'\t{"/".join(s)} <- deleteme')
-
     # Step 2: Work backwards from each nucleus to form the onset.
     leftovers = ipa_copy[syllable_start_index:]
     for dc in double_consonants:
@@ -160,7 +157,7 @@ def split_ipa_into_syllables(ipa):
     for match in matches:
         marker = leftovers[match.start():match.end()]
         leftovers_lst.append(marker_to_phoneme[marker])
-    
+
     syllables[-1].coda = leftovers_lst
 
     for i in range(len(syllables) - 1, -1, -1):
@@ -201,7 +198,6 @@ def split_ipa_into_syllables(ipa):
 
         syllables[i].onset = new_onset
 
-    
     return syllables
 
 
@@ -213,7 +209,7 @@ def can_prepend_to_onset(phoneme, onset):
     if phoneme not in consonant_phonemes:
         print(f'Unknown consonant phoneme: {phoneme}')
         return False
-    
+
     # English syllable structure is (C)^{3}V(C)^{5}, so no more than three
     # consonant sounds in the onset.
     if len(onset) >= 3:
@@ -392,6 +388,16 @@ def syllables_to_steno(syllables):
 
             translations = new_translations.copy()
 
+    # Run custom postprocessing.
+    new_translations = []
+    for steno in translations:
+        new_steno = postprocess_steno_sequence(steno, syllables)
+
+        if new_steno is not None:
+            new_translations.append(new_steno)
+
+    translations = new_translations
+
     return translations
 
 
@@ -479,7 +485,7 @@ def get_stroke_components(phonemes, phonemes_to_steno):
     for i, phoneme in enumerate(phonemes):
         steno = phonemes_to_steno[phoneme]
         if steno is None:
-            print(f'Wanring: No mapping given for phoneme {phoneme} in {[str(s) for s in syllables]}')
+            print(f'Warning: No mapping given for phoneme {phoneme} in {[str(s) for s in syllables]}')
         elif steno == NO_STENO_MAPPING:
             print(f'Warning: No steno mapping for phoneme {phoneme} in {[str(s) for s in syllables]}', file=sys.stderr)
             return None
@@ -495,6 +501,36 @@ def get_stroke_components(phonemes, phonemes_to_steno):
                 ways_to_stroke[i] += [steno]
 
     return ways_to_stroke
+
+
+def postprocess_steno_sequence(steno_sequence, syllables_ipa):
+    syllables_steno = steno_sequence.split('/')
+    new_syllables_steno = syllables_steno.copy()
+
+    # If a stroke after the first has 'U', 'EU', or 'E' as its vowel and it has
+    # following consonants, replace the vowel cluster with '-' (or '*' if the
+    # stroke is starred).
+    for i in range(1, len(syllables_steno)):
+        pattern = '([STKPWHR]*)([AO]*)([*]?)([EU]*)([FRPBLGTSDZ]*)'
+        match = re.match(pattern, syllables_steno[i])
+
+        if match:
+            (left, ao, star, eu, right) = match.groups()
+
+        if ao == '' and len(eu) != 0 and right != '':
+            # Remove the vowels.
+            middle = '*' if star == '*' else '-'
+            new_syllables_steno[i] = left + middle + right
+
+    # If the final sound in a syllable is an 's', it should be with the 'S' key
+    # not the 'F' key, even though making 's' with 'F' is allowed if there's
+    # another sound later in the syllable.
+    for steno, ipa in zip(new_syllables_steno, syllables_ipa):
+        if steno[-1] == 'F' and len(ipa.coda) > 0 and ipa.coda[-1] == 's':
+            # This is invalid.
+            return None
+
+    return '/'.join(new_syllables_steno)
 
 
 def get_args():
@@ -533,14 +569,14 @@ def main():
                 if syllables is None:
                     continue
 
-                steno = syllables_to_steno(syllables)
-                if steno is not None:
-                    word_in_steno.append(steno)
+                translations = syllables_to_steno(syllables)
+                if translations is not None:
+                    word_in_steno += translations
 
             if len(word_in_steno) == 0:
                 print(f'Warning: No translation for `{word}`')
             else:
-                words_and_strokes.append((word, steno))
+                words_and_strokes.append((word, word_in_steno))
 
     with open(args.output_file, 'w+') as output:
         output.write('{\n')
