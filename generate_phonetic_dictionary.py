@@ -204,7 +204,7 @@ def split_ipa_into_syllables(ipa):
 def can_prepend_to_onset(phoneme, onset):
     consonant_phonemes = ['b', 'd', 'f', 'h', 'j', 'k', 'm', 'n', 'p', 's', \
             't', 'v', 'w', 'z', 'ð', 'ŋ', 'ɡ', 'ɫ', 'ɹ', 'ʃ', 'ʒ', 'θ', \
-            'tʃ', 'dʒ']
+            'tʃ', 'dʒ', 'st']
 
     if phoneme not in consonant_phonemes:
         print(f'Unknown consonant phoneme: {phoneme}')
@@ -271,7 +271,7 @@ def syllables_to_steno(syllables):
         'ɑ': 'O',
         'aɪ': 'AOEU',
         'eɪ': 'AEU',
-        'ɔɪ': 'OI',
+        'ɔɪ': 'OEU',
         'aʊ': 'OU',
         'oʊ': 'OE',
         'ɪɹ': 'AOER',
@@ -485,9 +485,9 @@ def get_stroke_components(phonemes, phonemes_to_steno):
     for i, phoneme in enumerate(phonemes):
         steno = phonemes_to_steno[phoneme]
         if steno is None:
-            print(f'Warning: No mapping given for phoneme {phoneme} in {[str(s) for s in syllables]}')
+            print(f'Warning: No mapping given for phoneme {phoneme} in {phonemes}')
         elif steno == NO_STENO_MAPPING:
-            print(f'Warning: No steno mapping for phoneme {phoneme} in {[str(s) for s in syllables]}', file=sys.stderr)
+            print(f'Warning: No steno mapping for phoneme {phoneme} in {phonemes}')
             return None
         elif isinstance(steno, list):
             new_ways_to_stroke = []
@@ -597,6 +597,10 @@ def main():
         for line in file:
             word = line.strip()
             word_in_steno = []  # A list of ways to write the word.
+
+            if word not in word_to_ipa:
+                print(f'Warning: No translation for `{word}` (missing IPA entry)')
+                continue
 
             for ipa in word_to_ipa[word]:
                 syllables = split_ipa_into_syllables(ipa)
