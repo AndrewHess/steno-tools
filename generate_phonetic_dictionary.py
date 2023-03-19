@@ -501,9 +501,10 @@ def get_args():
     # Create an ArgumentParser object.
     parser = argparse.ArgumentParser(description='Generate steno strokes phonetically.')
 
-    # Add positional arguments.
+    # Add arguments.
     parser.add_argument('ipa_file', type=str, help='the IPA CSV dictionary')
     parser.add_argument('word_list_file', type=str, help='the file containing words generate strokes for')
+    parser.add_argument('-o', '--output_file', help='Path to the output file', default='output.json')
 
     # Parse the command line arguments
     return parser.parse_args()
@@ -517,23 +518,42 @@ def main():
     symbols.sort()
     print(f'IPA symbols: {symbols}')
 
+    # Make a list of tuples. The first part of the tuple is the desired word,
+    # and the second part is a list of ways to write it in steno.
+    words_and_strokes = []
+
     with open(args.word_list_file, 'r') as file:
         for line in file:
             word = line.strip()
+            word_in_steno = []  # A list of ways to write the word.
 
-            print(f'{word}')
             for ipa in word_to_ipa[word]:
                 syllables = split_ipa_into_syllables(ipa)
+
                 if syllables is None:
                     continue
-                s = [str(syll) for syll in syllables]
-                print(f'\t{"/".join(s)}', end=' -> ')
-                steno = syllables_to_steno(syllables)
-                if steno is None:
-                    print(f'Warning: No translation for `{word}`')
-                else:
-                    print(f'{", ".join(steno)}')
 
+                steno = syllables_to_steno(syllables)
+                if steno is not None:
+                    word_in_steno.append(steno)
+
+            if len(word_in_steno) == 0:
+                print(f'Warning: No translation for `{word}`')
+            else:
+                words_and_strokes.append((word, steno))
+
+    with open(args.output_file, 'w+') as output:
+        output.write('{\n')
+
+        for i, (word, ways_to_stroke) in enumerate(words_and_strokes):
+            for k, strokes in enumerate(ways_to_stroke):
+                line = f'"{strokes}": "{word}"'
+                if i < len(words_and_strokes) - 1 or k < len(ways_to_stroke) - 1:
+                    line += ','
+
+                output.write(f'{line}\n')
+
+        output.write('}')
 
 if __name__ == '__main__':
     main()
