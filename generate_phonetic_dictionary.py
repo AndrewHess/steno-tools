@@ -530,6 +530,24 @@ def postprocess_steno_sequence(steno_sequence, syllables_ipa):
             # This is invalid.
             return None
 
+    # If the final stroke is 'SH-PB', fold it into the previous stroke as '-GS'.
+    if len(new_syllables_steno) > 1 and new_syllables_steno[-1] == 'SH-PB':
+        prev = new_syllables_steno[-2]
+        if prev[-1] not in ['T', 'D', 'Z'] and 'GS' not in prev:
+            # We can fold it in; just make sure not to repeat a key.
+            if prev[-1] == 'G':
+                prev += 'S'
+            elif prev[-1] == 'S':
+                # We already know there's not a right-side 'T' or 'G', so we
+                # can put a 'G' immediately before the 'S'.
+                prev = prev[:-1] + 'GS'
+            else:
+                prev += 'GS'
+
+            # Now actually replace the strokes.
+            new_syllables_steno = new_syllables_steno[:-1]
+            new_syllables_steno[-1] = prev
+
     return '/'.join(new_syllables_steno)
 
 
