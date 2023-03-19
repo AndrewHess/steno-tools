@@ -4,7 +4,9 @@ import re
 import sys
 
 
+STENO_ORDER = 'STKPWHRAOEUFRPBLGTSDZ'
 NO_STENO_MAPPING = 'NO_STENO_MAPPING'
+
 
 class Syllable:
     def __init__(self, onset, nucleus, coda):
@@ -281,7 +283,7 @@ def syllables_to_steno(syllables):
         'd': 'TK',
         'f': 'TP',
         'h': 'H',
-        'j': 'Y',
+        'j': 'KWR',
         'k': 'K',
         'm': 'PH',
         'n': 'TPH',
@@ -332,9 +334,9 @@ def syllables_to_steno(syllables):
     translations = []  # List of all ways to stroke the syllable sequence.
 
     for i, syllable in enumerate(syllables):
-        ways_to_stroke_onset = build_stroke(syllable.onset, left_consonant_to_steno)
-        ways_to_stroke_nucleus = build_stroke([syllable.nucleus], vowel_to_steno)
-        ways_to_stroke_coda = build_stroke(syllable.coda, right_consonant_to_steno)
+        ways_to_stroke_onset = get_stroke_components(syllable.onset, left_consonant_to_steno)
+        ways_to_stroke_nucleus = get_stroke_components([syllable.nucleus], vowel_to_steno)
+        ways_to_stroke_coda = get_stroke_components(syllable.coda, right_consonant_to_steno)
 
         if ways_to_stroke_onset is None or \
            ways_to_stroke_nucleus is None or \
@@ -360,54 +362,130 @@ def syllables_to_steno(syllables):
                 temp.append(partial_stroke + coda_part)
         ways_to_stroke_syllable = temp.copy()
 
-        if i == 0:
-            translations = ways_to_stroke_syllable
+        potential_strokes = []
+        for stroke_components in ways_to_stroke_syllable:
+            stroke = build_stroke_from_components(stroke_components)
+
+            if stroke is not None:
+                potential_strokes.append(stroke)
+
+        if len(potential_strokes) == 0:
+            print(f'No valid way to stroke the syllable `{syllable}`')
+            return None
+
+        if len(translations) == 0:
+            translations = potential_strokes
         else:
             new_translations = []
             for prev_strokes in translations:
-                for stroke in ways_to_stroke_syllable:
+                for stroke in potential_strokes:
                     new_translations.append(prev_strokes + '/' + stroke)
 
-            translations = new_translations
+            translations = new_translations.copy()
 
     return translations
 
 
-def build_stroke(phonemes, phonemes_to_steno):
-    ways_to_stroke = ['']
+# Each of the parameters is a list of keys to stroke. Each element of each
+# paramter is the keys corresponding to one phoneme in the syllable.
+def build_stroke_from_components(components):
+    info = build_stroke_helper(components)
+
+    if info is None:
+        return None
+
+    (stroke, has_star) = info
+
+    # Make sure there's a vowel key. If there arn't any, then we need to place
+    # a '-' where the vowels would be. However, the logic gets a bit tricky
+    # because some consonants are on both the left and right sides. So to make
+    # it easier and becuase all English syllables have vowels, I'm going to
+    # require that each stroke as a vowel key.
+    has_vowel = False
+    for vowel in ['A', 'O', 'E', 'U']:
+        if vowel in stroke:
+            has_vowel = True
+
+    if not has_vowel:
+        print(f'Error: No vowel key in the stroke')
+        return None
+
+    if has_star:
+        # Place the star. It goes between 'O' and 'E' in steno order. This is
+        # a bit easier since we're requiring a vowel key in each stroke.
+        pos = stroke.find('O') + 1
+
+        if pos == 0:
+            pos = stroke.find('A') + 1
+
+        if pos == 0:
+            pos = stroke.find('E')
+
+        if pos == -1:
+            pos = stroke.find('U')
+
+        if pos == -1:
+            print(f'Error: all generated strokes must have a vowel key')
+            return None
+
+        # Add the star.
+        stroke = stroke[:pos] + '*' + stroke[pos:]
+
+    return stroke
+
+
+def build_stroke_helper(components):
+    stroke = ''
+    has_star = False
+    order_pos = 0
+
+    for keys_for_phoneme in components:
+        for letter in keys_for_phoneme:
+            if letter == '*':
+                has_star = True
+                continue
+            elif len(stroke) > 0 and letter == stroke[-1]:
+                # We're repeating a letter; this is valid, just don't double
+                # the letter in the returned steno stroke.
+                continue
+
+            order_pos = STENO_ORDER.find(letter, order_pos)
+            if order_pos == -1:
+                if letter in STENO_ORDER:
+                    # The letter is out of steno order.
+                    return None
+                else:
+                    print(f'Error: invalid symbol `{letter}` in steno stroke')
+                    return None
+            else:
+                # This letter is a valid addition to the stroke.
+                stroke += letter
+
+    return (stroke, has_star)
+
+
+def get_stroke_components(phonemes, phonemes_to_steno):
+    ways_to_stroke = [[]]
 
     for i, phoneme in enumerate(phonemes):
         steno = phonemes_to_steno[phoneme]
-        if steno == NO_STENO_MAPPING:
+        if steno is None:
+            print(f'Wanring: No mapping given for phoneme {phoneme} in {[str(s) for s in syllables]}')
+        elif steno == NO_STENO_MAPPING:
             print(f'Warning: No steno mapping for phoneme {phoneme} in {[str(s) for s in syllables]}', file=sys.stderr)
             return None
         elif isinstance(steno, list):
             new_ways_to_stroke = []
             for keys in steno:
                 for partial_stroke in ways_to_stroke:
-                    new_ways_to_stroke.append(partial_stroke + keys)
+                    new_ways_to_stroke.append(partial_stroke + [keys])
 
             ways_to_stroke = new_ways_to_stroke
         else:
             for i in range(len(ways_to_stroke)):
-                ways_to_stroke[i] += steno
+                ways_to_stroke[i] += [steno]
 
     return ways_to_stroke
-
-
-# Clean up the stroke so it's valid for a steno dictionary. The provided
-# stroke may have repeated letters, any number of *'s in any position, and
-# may lack the `-` when no vowels are included.
-def stroke_to_valid_steno(stroke):
-    star = ('*' in stroke)
-    contains_vowel = False
-
-    for vowel in ['A', 'O', 'E', 'U']:
-        if vowel in stroke:
-            contains_vowel = True
-
-    # TODO
-    pass
 
 
 def get_args():
@@ -442,7 +520,10 @@ def main():
                 s = [str(syll) for syll in syllables]
                 print(f'\t{"/".join(s)}', end=' -> ')
                 steno = syllables_to_steno(syllables)
-                print(f'{", ".join(steno)}')
+                if steno is None:
+                    print(f'Warning: No translation for `{word}`')
+                else:
+                    print(f'{", ".join(steno)}')
 
 
 if __name__ == '__main__':
