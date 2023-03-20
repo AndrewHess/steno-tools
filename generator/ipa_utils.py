@@ -10,25 +10,25 @@ from syllable import Syllable
 def create_ipa_lookup_dictionary(filename):
     word_to_ipa = {}
     try:
-        with open(filename, newline='') as csv_file:
+        with open(filename, newline="") as csv_file:
             for line in csv_file:
                 (key, value) = extract_key_and_value(line)
                 word_to_ipa[key] = value
 
     except FileNotFoundError:
-        log = logging.getLogger('dictionary_generator')
-        log.error(f'The file `{filename}` does not exist.')
+        log = logging.getLogger("dictionary_generator")
+        log.error(f"The file `{filename}` does not exist.")
         sys.exit(1)
 
     return word_to_ipa
 
 
 def extract_key_and_value(line):
-    split_line = line.strip().split(',', 1)  # Only split at the first comma.
+    split_line = line.strip().split(",", 1)  # Only split at the first comma.
     key = split_line[0]
 
     # Each value is between a pair of slashes.
-    split_value = split_line[1].split('/')
+    split_value = split_line[1].split("/")
     # Extract every second element.
     return (key, split_value[1::2])
 
@@ -53,7 +53,7 @@ def get_ipa_symbols(word_to_ipa):
 
 
 def split_ipa_into_syllables(ipa):
-    log = logging.getLogger('dictionary_generator')
+    log = logging.getLogger("dictionary_generator")
 
     # The vowels and consonants lists must be sorted so that entries with more
     # characters appear earlier. This is so that when we look for these
@@ -66,7 +66,7 @@ def split_ipa_into_syllables(ipa):
     phonemes = vowels + consonants
     phoneme_to_marker = {}
     for i, phoneme in enumerate(phonemes):
-        phoneme_to_marker[phoneme] = '(' + str(i) + ')'
+        phoneme_to_marker[phoneme] = "(" + str(i) + ")"
     marker_to_phoneme = {value: key for key, value in phoneme_to_marker.items()}
 
     # Step 1: Locate each nucleus.
@@ -76,18 +76,18 @@ def split_ipa_into_syllables(ipa):
 
     syllables = []
     syllable_start_index = 0
-    matches = [match for match in re.finditer('\([0-9]+\)', ipa_copy)]
+    matches = [match for match in re.finditer("\([0-9]+\)", ipa_copy)]
 
     for match in matches:
-        onset = ipa_copy[syllable_start_index:match.start()]
-        marker = ipa_copy[match.start():match.end()]
+        onset = ipa_copy[syllable_start_index : match.start()]
+        marker = ipa_copy[match.start() : match.end()]
         nucleus = marker_to_phoneme[marker]
         coda = []
         syllables.append(Syllable(onset, nucleus, coda))
         syllable_start_index = match.end()
 
     if len(syllables) == 0:
-        log.warning(f'No syllables found for {ipa}')
+        log.warning(f"No syllables found for {ipa}")
         return None
 
     # Step 2: Work backwards from each nucleus to form the onset.
@@ -95,10 +95,10 @@ def split_ipa_into_syllables(ipa):
     for consonant in consonants:
         leftovers = leftovers.replace(consonant, phoneme_to_marker[consonant])
 
-    matches = [match for match in re.finditer('\([0-9]+\)', leftovers)]
+    matches = [match for match in re.finditer("\([0-9]+\)", leftovers)]
     leftovers_lst = []
     for match in matches:
-        marker = leftovers[match.start():match.end()]
+        marker = leftovers[match.start() : match.end()]
         leftovers_lst.append(marker_to_phoneme[marker])
 
     syllables[-1].coda = leftovers_lst
@@ -111,10 +111,10 @@ def split_ipa_into_syllables(ipa):
         for consonant in consonants:
             onset = onset.replace(consonant, phoneme_to_marker[consonant])
 
-        matches = [match for match in re.finditer('\([0-9]+\)', onset)]
+        matches = [match for match in re.finditer("\([0-9]+\)", onset)]
         onset_lst = []
         for match in matches:
-            marker = onset[match.start():match.end()]
+            marker = onset[match.start() : match.end()]
             onset_lst.append(marker_to_phoneme[marker])
 
         # Try to prepend each element of `onset_lst` to `new_onset`, but
@@ -127,13 +127,13 @@ def split_ipa_into_syllables(ipa):
             else:
                 if i == 0:
                     # This syllable must take the leading consonants.
-                    log.warning(f'Unable to assign leading consonants for {ipa}')
+                    log.warning(f"Unable to assign leading consonants for {ipa}")
                     return None
 
                 # We can't prepend this phoneme to the syllable, so give
                 # all the unused phonems to the previous syllable's coda.
-                assert(i > 0)
-                syllables[i - 1].coda = onset_lst[:k + 1]
+                assert i > 0
+                syllables[i - 1].coda = onset_lst[: k + 1]
                 break
 
         syllables[i].onset = new_onset

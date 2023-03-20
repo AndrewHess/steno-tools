@@ -4,12 +4,10 @@ class Syllable:
         self.nucleus = nucleus
         self.coda = coda
 
-
     def str_debug(self):
         return str(self.onset) + str(self.nucleus) + str(self.coda)
 
-
     def __str__(self):
-        onset = ''.join(self.onset)
-        coda = ''.join(self.coda)
-        return f'{onset + self.nucleus + coda}'
+        onset = "".join(self.onset)
+        coda = "".join(self.coda)
+        return f"{onset + self.nucleus + coda}"
