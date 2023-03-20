@@ -5,6 +5,7 @@ STENO_ORDER = 'STKPWHRAOEUFRPBLGTSDZ'  # Excludes the '*'.
 NO_STENO_MAPPING = 'NO_STENO_MAPPING'
 
 VOWELS = [
+    ############ American English Vowels ############
     'ɪ',  # Ex: mYth, prEtty, wOmen
     'ɛ',  # Ex: brEAd, mAny, mEn
     'æ',  # Ex: cAt, fAst, pAss
@@ -25,7 +26,13 @@ VOWELS = [
     'ɔɹ',  # Ex: gORe, bOAR, dOOR
     'ʊɹ',  # Ex: pURe, ensURe
     'ɑɹ',  # Ex: cAR, sonAR, ARctic
+
+    ############ Extra Vowel Clusters ############
     'ju',  # Ex: YOU, fEW, pEWter
+    'jə',  # Sounds the same as 'ju' to me.
+    'ɝtʃ',  # Ex: lURCH, resEARCH
+    'ɑɹtʃ',  # Ex: ARCH, mARCH,
+    'ɔɹtʃ',  # Ex: tORCH, pORCH
 ]
 
 CONSONANTS = [
@@ -53,12 +60,18 @@ CONSONANTS = [
     'θ',  # Ex: youTH, THin
     'tʃ',  # Ex: gliTCH, beaCH
     'dʒ',  # Ex: JuDGe, friDGe, Germ
+
+    ############ Consonant Clusters ############
     'st',  # Ex: firST heiST, burST
+    'ŋk',  # Ex: baNK, thaNKs
+    'mp',  # Ex: raMP, cluMP
+    'ntʃ',  # Ex: lauNCH, braNCH
 ]
 
 STRESS_MARKERS = ['ˈ', 'ˌ']
 
 VOWEL_TO_STENO = {
+    ############ American English Vowels ############
     'ɪ': 'EU',
     'ɛ': 'E',
     'æ': 'A',
@@ -79,7 +92,13 @@ VOWEL_TO_STENO = {
     'ɔɹ': 'OR',
     'ʊɹ': 'AOUR',
     'ɑɹ': 'AR',
+
+    ############ Extra Vowel Clusters ############
     'ju': 'AOU',  # Note: this is the same as for just 'u'.
+    'jə': 'AOU',
+    'ɝtʃ': 'UFRPB',
+    'ɑɹtʃ': 'AFRPB',
+    'ɔɹtʃ': 'OFRPB',
 }
 
 LEFT_CONSONANT_TO_STENO = {
@@ -108,6 +127,9 @@ LEFT_CONSONANT_TO_STENO = {
     'tʃ': 'KH',
     'dʒ': 'SKWR',
     'st': 'ST',
+    'ŋk': NO_STENO_MAPPING,
+    'mp': NO_STENO_MAPPING,
+    'ntʃ': NO_STENO_MAPPING,
 }
 
 RIGHT_CONSONANT_TO_STENO = {
@@ -135,28 +157,40 @@ RIGHT_CONSONANT_TO_STENO = {
     'θ': '*T',
     'tʃ': 'FP',
     'dʒ': 'PBLG',
-    'st': ['FT', '*S']
+    'st': ['FT', '*S'],
+    'ŋk': 'PBG',  # Note: this colides with 'ŋ'.
+    'mp': '*PL',
+    'ntʃ': 'FRPB',
 }
 
 
 def can_prepend_to_onset(phoneme, onset):
     consonant_phonemes = ['b', 'd', 'f', 'h', 'j', 'k', 'm', 'n', 'p', 's', \
             't', 'v', 'w', 'z', 'ð', 'ŋ', 'ɡ', 'ɫ', 'ɹ', 'ʃ', 'ʒ', 'θ', \
-            'tʃ', 'dʒ', 'st']
+            'tʃ', 'dʒ', 'st', 'ŋk', 'mp', 'ntʃ']
 
     if phoneme not in consonant_phonemes:
         print(f'Unknown consonant phoneme: {phoneme}')
         return False
 
-    # Any initial sound is allowed except for the NG sound.
+    # Almost any initial sound is allowed.
     if onset == []:
-        return phoneme != 'ŋ'
+        return phoneme not in ['ŋ', 'ŋk', 'mp', 'ntʃ']
 
     prev = onset[0]
 
     ####################### Custom Rules #######################
     if phoneme == 'st' and prev in ['ɹ', 'w']:
         return True
+
+    if phoneme == 'ŋk':
+        return False
+
+    if phoneme == 'mp':
+        return False
+
+    if phoneme == 'ntʃ':
+        return False
 
     ####################### English Rules ######################
     # All following rules are from https://en.wikipedia.org/wiki/English_phonology
