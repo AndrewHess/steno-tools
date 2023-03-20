@@ -1,3 +1,4 @@
+import logging
 import random
 import re
 import sys
@@ -15,7 +16,8 @@ def create_ipa_lookup_dictionary(filename):
                 word_to_ipa[key] = value
 
     except FileNotFoundError:
-        print(f'The file `{filename}` does not exist.', file=sys.stderr)
+        log = logging.getLogger('dictionary_generator')
+        log.error(f'The file `{filename}` does not exist.')
         sys.exit(1)
 
     return word_to_ipa
@@ -51,6 +53,8 @@ def get_ipa_symbols(word_to_ipa):
 
 
 def split_ipa_into_syllables(ipa):
+    log = logging.getLogger('dictionary_generator')
+
     # The vowels and consonants lists must be sorted so that entries with more
     # characters appear earlier. This is so that when we look for these
     # phonemes in an IPA definition, we match the longest phonemes if we can.
@@ -83,7 +87,7 @@ def split_ipa_into_syllables(ipa):
         syllable_start_index = match.end()
 
     if len(syllables) == 0:
-        print(f'Warning: No syllables found for {ipa}', file=sys.stderr)
+        log.warning(f'No syllables found for {ipa}')
         return None
 
     # Step 2: Work backwards from each nucleus to form the onset.
@@ -123,7 +127,7 @@ def split_ipa_into_syllables(ipa):
             else:
                 if i == 0:
                     # This syllable must take the leading consonants.
-                    print(f'Warning: unable to assign leading consonants for {ipa}')
+                    log.warning(f'Unable to assign leading consonants for {ipa}')
                     return None
 
                 # We can't prepend this phoneme to the syllable, so give

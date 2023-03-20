@@ -1,3 +1,4 @@
+import logging
 import re
 
 
@@ -166,7 +167,8 @@ RIGHT_CONSONANT_TO_STENO = {
 
 def can_prepend_to_onset(phoneme, onset):
     if phoneme not in CONSONANTS:
-        print(f'Unknown consonant phoneme: {phoneme}')
+        log = logging.getLogger('dictionary_generator')
+        log.error(f'Unknown consonant phoneme: {phoneme}')
         return False
 
     # Almost any initial sound is allowed.

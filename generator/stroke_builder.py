@@ -1,3 +1,5 @@
+import logging
+
 import config
 import ipa_utils
 
@@ -5,6 +7,7 @@ import ipa_utils
 # Each of the parameters is a list of keys to stroke. Each element of each
 # paramter is the keys corresponding to one phoneme in the syllable.
 def build_stroke_from_components(components):
+    log = logging.getLogger('dictionary_generator')
     info = build_stroke_helper(components)
 
     if info is None:
@@ -23,7 +26,7 @@ def build_stroke_from_components(components):
             has_vowel = True
 
     if not has_vowel:
-        print(f'Error: No vowel key in the stroke')
+        log.error(f'No vowel key in the stroke')
         return None
 
     if has_star:
@@ -41,7 +44,7 @@ def build_stroke_from_components(components):
             pos = stroke.find('U')
 
         if pos == -1:
-            print(f'Error: all generated strokes must have a vowel key')
+            log.error(f'All generated strokes must have a vowel key')
             return None
 
         # Add the star.
@@ -71,7 +74,8 @@ def build_stroke_helper(components):
                     # The letter is out of steno order.
                     return None
                 else:
-                    print(f'Error: invalid symbol `{letter}` in steno stroke')
+                    log = logging.getLogger('dictionary_generator')
+                    log.error(f'Invalid symbol `{letter}` in steno stroke')
                     return None
             else:
                 # This letter is a valid addition to the stroke.
@@ -81,14 +85,15 @@ def build_stroke_helper(components):
 
 
 def get_stroke_components(phonemes, phonemes_to_steno):
+    log = logging.getLogger('dictionary_generator')
     ways_to_stroke = [[]]
 
     for i, phoneme in enumerate(phonemes):
         steno = phonemes_to_steno[phoneme]
         if steno is None:
-            print(f'Warning: No mapping given for phoneme {phoneme} in {phonemes}')
+            log.error(f'No mapping given for phoneme {phoneme} in {phonemes}')
         elif steno == config.NO_STENO_MAPPING:
-            print(f'Warning: No steno mapping for phoneme {phoneme} in {phonemes}')
+            log.error(f'No steno mapping for phoneme {phoneme} in {phonemes}')
             return None
         elif isinstance(steno, list):
             new_ways_to_stroke = []
@@ -144,7 +149,8 @@ def syllables_to_steno(syllables):
                 potential_strokes.append(stroke)
 
         if len(potential_strokes) == 0:
-            print(f'No valid way to stroke the syllable `{syllable}`')
+            log = logging.getLogger('dictionary_generator')
+            log.info(f'No valid way to stroke the syllable `{syllable}`')
             return None
 
         if len(translations) == 0:
