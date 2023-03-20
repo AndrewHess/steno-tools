@@ -165,11 +165,7 @@ RIGHT_CONSONANT_TO_STENO = {
 
 
 def can_prepend_to_onset(phoneme, onset):
-    consonant_phonemes = ['b', 'd', 'f', 'h', 'j', 'k', 'm', 'n', 'p', 's', \
-            't', 'v', 'w', 'z', 'ð', 'ŋ', 'ɡ', 'ɫ', 'ɹ', 'ʃ', 'ʒ', 'θ', \
-            'tʃ', 'dʒ', 'st', 'ŋk', 'mp', 'ntʃ']
-
-    if phoneme not in consonant_phonemes:
+    if phoneme not in CONSONANTS:
         print(f'Unknown consonant phoneme: {phoneme}')
         return False
 

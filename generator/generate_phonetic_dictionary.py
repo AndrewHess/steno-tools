@@ -19,6 +19,12 @@ def get_args():
 def main():
     args = get_args()
 
+    # Make sure the config is valid.
+    if not core.vowel_to_steno_is_complete() or \
+       not core.consonant_to_steno_is_complete():
+        print(f'Not generating dictionary')
+        return
+
     words_and_strokes = core.generate_dictionary(args.ipa_file, args.word_list_file)
     words_and_strokes = config.postprocess_generated_dictionary(words_and_strokes)
     core.write_dictionary_to_file(words_and_strokes, args.output_file)

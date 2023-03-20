@@ -1,5 +1,32 @@
+import config
 import ipa_utils
 import stroke_builder
+
+
+def vowel_to_steno_is_complete():
+    all_defined = True
+
+    for vowel in config.VOWELS:
+        if vowel not in config.VOWEL_TO_STENO:
+            all_defined = False
+            print(f'Error: `{vowel}` is in VOWELS but not mapped in VOWEL_TO_STENO')
+
+    return all_defined
+
+
+def consonant_to_steno_is_complete():
+    all_defined = True
+
+    for consonant in config.CONSONANTS:
+        if consonant not in config.LEFT_CONSONANT_TO_STENO:
+            all_defined = False
+            print(f'Error: `{consonant}` is in CONSONANTS but not mapped in LEFT_CONSONANT_TO_STENO')
+
+        if consonant not in config.RIGHT_CONSONANT_TO_STENO:
+            all_defined = False
+            print(f'Error: `{consonant}` is in CONSONANTS but not mapped in RIGHT_CONSONANT_TO_STENO')
+
+    return all_defined
 
 
 def generate_dictionary(ipa_file, word_list_file):
