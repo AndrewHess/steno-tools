@@ -1,12 +1,38 @@
+"""Convert IPA syllables into steno strokes."""
+
 import logging
 
 import config
-import ipa_utils
 
 
 # Each of the parameters is a list of keys to stroke. Each element of each
 # paramter is the keys corresponding to one phoneme in the syllable.
 def build_stroke_from_components(components):
+    """Create a steno stroke from a list of components of the stroke.
+
+    Example:
+        components = ["PB", "OE", "*T"]
+        returns "PBO*ET"
+
+    If any component has a "*" in any position, then the returned stroke will
+    have a "*" in the correct position, otherwise it will not have a star.
+
+    Note: This function requires that one of the components has at least one
+    vowels character (A, O, E, or U).
+
+    Args:
+        Components: A list of steno stroke components. Each element of the list
+            is a string specifying keys to add to the stroke, and any element
+            may contain a "*" anywhere to indicate that a "*" should be added
+            to the correct position in the stroke.
+
+    Returns:
+        A string that is the concatenation of `components` but with the "*" (if
+        any) placed in the correct place.
+        If concatenating `components` would give a stroke that is out of steno
+        order, then None is returned instead.
+    """
+
     log = logging.getLogger("dictionary_generator")
     info = build_stroke_helper(components)
 
@@ -15,7 +41,7 @@ def build_stroke_from_components(components):
 
     (stroke, has_star) = info
 
-    # Make sure there's a vowel key. If there arn't any, then we need to place
+    # Make sure there's a vowel key. If there aren't any, then we need to place
     # a '-' where the vowels would be. However, the logic gets a bit tricky
     # because some consonants are on both the left and right sides. So to make
     # it easier and becuase all English syllables have vowels, I'm going to
@@ -26,7 +52,7 @@ def build_stroke_from_components(components):
             has_vowel = True
 
     if not has_vowel:
-        log.error(f"No vowel key in the stroke")
+        log.error("No vowel key in the stroke")
         return None
 
     if has_star:
@@ -44,7 +70,7 @@ def build_stroke_from_components(components):
             pos = stroke.find("U")
 
         if pos == -1:
-            log.error(f"All generated strokes must have a vowel key")
+            log.error("All generated strokes must have a vowel key")
             return None
 
         # Add the star.
@@ -54,6 +80,31 @@ def build_stroke_from_components(components):
 
 
 def build_stroke_helper(components):
+    """Create a steno stroke from a list of components of the stroke.
+
+    Example:
+        components = ["PB", "OE", "*T"]
+        returns ("PBOET", True)
+
+    If any component has a "*" in any position, then the returned stroke will
+    have a "*" in the correct position, otherwise it will not have a star.
+
+    Note: This function requires that one of the components has at least one
+    vowels character (A, O, E, or U).
+
+    Args:
+        Components: A list of steno stroke components. Each element of the list
+            is a string specifying keys to add to the stroke, and any element
+            may contain a "*" anywhere to indicate that a "*" should be added
+            to the correct position in the stroke.
+
+    Returns:
+        A tuple where the first element is the concatenation of `components`
+        but with the "*" (if any) removed, and the second element is True if
+        some componenet had a "*" anywhere.
+        If concatenating `components` would give a stroke that is out of steno
+        order, then None is returned instead.
+    """
     stroke = ""
     has_star = False
     order_pos = 0
@@ -63,7 +114,7 @@ def build_stroke_helper(components):
             if letter == "*":
                 has_star = True
                 continue
-            elif len(stroke) > 0 and letter == stroke[-1]:
+            if len(stroke) > 0 and letter == stroke[-1]:
                 # We're repeating a letter; this is valid, just don't double
                 # the letter in the returned steno stroke.
                 continue
@@ -73,27 +124,47 @@ def build_stroke_helper(components):
                 if letter in config.STENO_ORDER:
                     # The letter is out of steno order.
                     return None
-                else:
-                    log = logging.getLogger("dictionary_generator")
-                    log.error(f"Invalid symbol `{letter}` in steno stroke")
-                    return None
-            else:
-                # This letter is a valid addition to the stroke.
-                stroke += letter
+
+                log = logging.getLogger("dictionary_generator")
+                log.error("Invalid symbol `%s` in steno stroke", letter)
+                return None
+
+            # This letter is a valid addition to the stroke.
+            stroke += letter
 
     return (stroke, has_star)
 
 
 def get_stroke_components(phonemes, phonemes_to_steno):
+    """Convert phonemes into their corresponding steno keys.
+
+    Args:
+        phonemes: A list of phonemes to convert to steno keys. The list should
+            correspond to one steno stroke.
+        phonemes_to_steno: A dictionary mapping phonemes to possible ways to
+            write that phoneme with steno. If there is only one way to write
+            the phoneme, the value will be a string specifying the steno keys.
+            If there are multiple ways to write the phoneme, the value will be
+            a list of strings with each element specifying the steno keys to
+            write the phoneme in a different way. If there is no way to write
+            the phoneme, the value should be config.NO_STENO_MAPPING.
+
+    Returns:
+        A list of list of strings. Each element of the returnd list is a way to
+        write the provided phonemes. Each character of each string within the
+        an inner list is the name of a steno key; for example, "K", "O", or "*".
+
+    """
+
     log = logging.getLogger("dictionary_generator")
     ways_to_stroke = [[]]
 
-    for i, phoneme in enumerate(phonemes):
+    for phoneme in phonemes:
         steno = phonemes_to_steno[phoneme]
         if steno is None:
-            log.error(f"No mapping given for phoneme {phoneme} in {phonemes}")
+            log.error("No mapping given for phoneme `%s` in `%s`", phoneme, phonemes)
         elif steno == config.NO_STENO_MAPPING:
-            log.error(f"No steno mapping for phoneme {phoneme} in {phonemes}")
+            log.error("No steno mapping for phoneme `%s` in `%s`", phoneme, phonemes)
             return None
         elif isinstance(steno, list):
             new_ways_to_stroke = []
@@ -103,16 +174,27 @@ def get_stroke_components(phonemes, phonemes_to_steno):
 
             ways_to_stroke = new_ways_to_stroke
         else:
-            for i in range(len(ways_to_stroke)):
-                ways_to_stroke[i] += [steno]
+            for prev_strokes in ways_to_stroke:
+                prev_strokes += [steno]
 
     return ways_to_stroke
 
 
 def syllables_to_steno(syllables):
+    """Create a list of possible steno strokes to form the given syllables.
+
+    Args:
+        syllables: A list of Syllables (see syllable.py)
+
+    Returns:
+        A list of strings. Each string is way to write `syllables` in steno
+        given the rules for syllable splitting, postprocessing, and phoneme to
+        steno key conversion in config.py.
+    """
+
     translations = []  # List of all ways to stroke the syllable sequence.
 
-    for i, syllable in enumerate(syllables):
+    for syllable in syllables:
         ways_to_stroke_onset = get_stroke_components(
             syllable.onset, config.LEFT_CONSONANT_TO_STENO
         )
@@ -154,7 +236,7 @@ def syllables_to_steno(syllables):
 
         if len(potential_strokes) == 0:
             log = logging.getLogger("dictionary_generator")
-            log.info(f"No valid way to stroke the syllable `{syllable}`")
+            log.info("No valid way to stroke the syllable `%s`", syllable)
             return None
 
         if len(translations) == 0:

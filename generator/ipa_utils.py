@@ -1,3 +1,5 @@
+"""Read IPA pronunciations for words and split IPA words into syllables."""
+
 import logging
 import random
 import re
@@ -8,22 +10,47 @@ from syllable import Syllable
 
 
 def create_ipa_lookup_dictionary(filename):
+    """Create a dictionary mapping words to IPA pronunciations.
+
+    Args:
+        filename: The name of a file specifying pronunciation in IPA for words.
+            It should be a CSV file where each line has the format
+            <word>,/<ipa1>/,/<ipa2>/...
+            so that each prononciation (ipa1, ipa2, ...) is between slashes.
+
+    Returns:
+        A dictionary where each key is a word from the specified file and the
+        value is a list with each element being the pronunciation for that word
+        as specified by the IPA entries in the file for that word.
+    """
     word_to_ipa = {}
     try:
-        with open(filename, newline="") as csv_file:
+        with open(filename, newline="", encoding="UTF-8") as csv_file:
             for line in csv_file:
                 (key, value) = extract_key_and_value(line)
                 word_to_ipa[key] = value
 
     except FileNotFoundError:
         log = logging.getLogger("dictionary_generator")
-        log.error(f"The file `{filename}` does not exist.")
+        log.error("The file `%s` does not exist.", filename)
         sys.exit(1)
 
     return word_to_ipa
 
 
 def extract_key_and_value(line):
+    """Extract the key and values from a string.
+
+    Args:
+        line: A string which should be of the form
+            <key>,/<value1>/,/<value2>/,/<value3>/...
+            so that everything before the first comma is the key, and each
+            value is enclosed in forward slashes.
+
+    Returns:
+        A tuple where the first element is the key as a string and the second
+        element is the list of values as strings.
+    """
     split_line = line.strip().split(",", 1)  # Only split at the first comma.
     key = split_line[0]
 
@@ -35,6 +62,21 @@ def extract_key_and_value(line):
 
 # Find all the IPA symbols used by this dictionary.
 def get_ipa_symbols(word_to_ipa):
+    """Compile a set of IPA symbols used in the provided corpus.
+
+    This function randomly selects entries of `word_to_ipa` and collects the
+    IPA symbols used. So it's possible that not all symbols used in
+    `word_to_ipa` will be given in the returned value.
+
+    Args:
+        word_to_ipa: A dictionary where each key is a string for a word, and
+            the value is a list of strings with each string being the
+            pronunciations for that word given in IPA.
+
+    Returns:
+        A Set of the IPA symbols used in `word_to_ipa`
+    """
+
     # Check the IPA symbols used in a bunch of random words.
     num_words_to_check = 10000
 
@@ -53,6 +95,26 @@ def get_ipa_symbols(word_to_ipa):
 
 
 def split_ipa_into_syllables(ipa):
+    """Split the pronunciation of a word given by IPA into syllables.
+
+    This function was designed for splitting English words into syllables, and
+    may not work properly for other languages. The algorithm used to split
+    syllables is:
+        1. Find each nucleus.
+        2. For each nucleus, build the syllable's onset by prefixing the
+           consonant sounds before the nucleus, so long as prepending the
+           phoneme is phonologically valid.
+        3. Append any unused consonant phonemes to the nucleus that it follows.
+
+    This algorithm idea is from:
+    https://linguistics.stackexchange.com/a/30934/41351
+
+    Args:
+        ipa: A string representing the pronunciation for some word in IPA.
+
+    Returns:
+        A list of Syllables (see syllable.py) for the word.
+    """
     log = logging.getLogger("dictionary_generator")
 
     # The vowels and consonants lists must be sorted so that entries with more
@@ -76,7 +138,7 @@ def split_ipa_into_syllables(ipa):
 
     syllables = []
     syllable_start_index = 0
-    matches = [match for match in re.finditer("\([0-9]+\)", ipa_copy)]
+    matches = re.finditer(r"\([0-9]+\)", ipa_copy)
 
     for match in matches:
         onset = ipa_copy[syllable_start_index : match.start()]
@@ -87,7 +149,7 @@ def split_ipa_into_syllables(ipa):
         syllable_start_index = match.end()
 
     if len(syllables) == 0:
-        log.warning(f"No syllables found for {ipa}")
+        log.warning("No syllables found for `%s`", ipa)
         return None
 
     # Step 2: Work backwards from each nucleus to form the onset.
@@ -95,7 +157,7 @@ def split_ipa_into_syllables(ipa):
     for consonant in consonants:
         leftovers = leftovers.replace(consonant, phoneme_to_marker[consonant])
 
-    matches = [match for match in re.finditer("\([0-9]+\)", leftovers)]
+    matches = re.finditer(r"\([0-9]+\)", leftovers)
     leftovers_lst = []
     for match in matches:
         marker = leftovers[match.start() : match.end()]
@@ -111,7 +173,7 @@ def split_ipa_into_syllables(ipa):
         for consonant in consonants:
             onset = onset.replace(consonant, phoneme_to_marker[consonant])
 
-        matches = [match for match in re.finditer("\([0-9]+\)", onset)]
+        matches = re.finditer(r"\([0-9]+\)", onset)
         onset_lst = []
         for match in matches:
             marker = onset[match.start() : match.end()]
@@ -127,7 +189,7 @@ def split_ipa_into_syllables(ipa):
             else:
                 if i == 0:
                     # This syllable must take the leading consonants.
-                    log.warning(f"Unable to assign leading consonants for {ipa}")
+                    log.warning("Unable to assign leading consonants for `%s`", ipa)
                     return None
 
                 # We can't prepend this phoneme to the syllable, so give

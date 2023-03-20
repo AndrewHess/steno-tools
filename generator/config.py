@@ -1,3 +1,5 @@
+"""Configuration for the steno dictionary generator."""
+
 import logging
 import re
 
@@ -5,6 +7,8 @@ import re
 STENO_ORDER = "STKPWHRAOEUFRPBLGTSDZ"  # Excludes the '*'.
 NO_STENO_MAPPING = "NO_STENO_MAPPING"
 
+# Vowel phonemes that may appear in the IPA pronunciation of words that you
+# want to generate steno strokes for.
 VOWELS = [
     ############ American English Vowels ############
     "ɪ",  # Ex: mYth, prEtty, wOmen
@@ -35,6 +39,8 @@ VOWELS = [
     "ɔɹtʃ",  # Ex: tORCH, pORCH
 ]
 
+# Consonant phonemes that may appear in the IPA pronunciation of words that
+# you want to generate steno strokes for.
 CONSONANTS = [
     "b",
     "d",
@@ -67,8 +73,18 @@ CONSONANTS = [
     "ntʃ",  # Ex: lauNCH, braNCH
 ]
 
+# IPA symbols used to denote the stress of the following syllable.
 STRESS_MARKERS = ["ˈ", "ˌ"]
 
+# Specify how each vowel in VOWELS should be translated to steno.
+#
+# Each vowel in VOWELS must have an entry here.
+#
+# If there are multiple ways to write the sound, the value should be a list of
+# strings with each string being a way to write it.
+#
+# If the sound should be stenoed with the star key, add a "*" character
+# anywhere in the string.
 VOWEL_TO_STENO = {
     ############ American English Vowels ############
     "ɪ": "EU",
@@ -99,6 +115,17 @@ VOWEL_TO_STENO = {
     "ɔɹtʃ": "OFRPB",
 }
 
+# Specify how each consonant in CONSONANTS should be translated to steno using
+# the left side consonants.
+#
+# Each consonant in CONSONANTS must have an entry here; if it's not a valid
+# left-side consonant sound its value should be NO_STENO_MAPPING.
+#
+# If there are multiple ways to write the sound with left-side consonants, the
+# value should be a list of strings with each string being a way to write it.
+#
+# If the sound should be stenoed with the star key, add a "*" character
+# anywhere in the string.
 LEFT_CONSONANT_TO_STENO = {
     "b": "PW",
     "d": "TK",
@@ -130,6 +157,17 @@ LEFT_CONSONANT_TO_STENO = {
     "ntʃ": NO_STENO_MAPPING,
 }
 
+# Specify how each consonant in CONSONANTS should be translated to steno using
+# the right-side consonants.
+#
+# Each consonant in CONSONANTS must have an entry here; if it's not a valid
+# right-side consonant sound its value should be NO_STENO_MAPPING.
+#
+# If there are multiple ways to write the sound with right-side consonants, the
+# value should be a list of strings with each string being a way to write it.
+#
+# If the sound should be stenoed with the star key, add a "*" character
+# anywhere in the string.
 RIGHT_CONSONANT_TO_STENO = {
     "b": "B",
     "d": "D",
@@ -163,9 +201,18 @@ RIGHT_CONSONANT_TO_STENO = {
 
 
 def can_prepend_to_onset(phoneme, onset):
+    """Determine if prepending a phoneme to an onset is valid.
+
+    Args:
+        phoneme: an entry in CONSONANTS
+        onset: a list of strings, which are each entries in CONSONANTS
+    Returns:
+        True if prepending `phoneme` to `onset` is phonologically valid.
+    """
+
     if phoneme not in CONSONANTS:
         log = logging.getLogger("dictionary_generator")
-        log.error(f"Unknown consonant phoneme: {phoneme}")
+        log.error("Unknown consonant phoneme `%s`", phoneme)
         return False
 
     # Almost any initial sound is allowed.
@@ -231,6 +278,21 @@ def can_prepend_to_onset(phoneme, onset):
 
 
 def postprocess_steno_sequence(steno_sequence, syllables_ipa):
+    """Make custom modifications to a generated stroke sequence.
+
+    Args:
+        steno_sequence: a string specifying the generated steno strokes. Each
+            stroke is separated by a forward slash.
+        syllables_ipa: A list of Syllables, giving the pronunciation for the
+            translated word via IPA. See syllable.py for more info on a
+            Syllable.
+
+    Returns:
+        A string that is the stroke sequence after applying any modifications.
+        This should be the input `steno_sequence` if no modifications are
+        desired for this sequence.
+    """
+
     syllables_steno = steno_sequence.split("/")
     new_syllables_steno = syllables_steno.copy()
 
@@ -242,9 +304,9 @@ def postprocess_steno_sequence(steno_sequence, syllables_ipa):
         match = re.match(pattern, syllables_steno[i])
 
         if match:
-            (left, ao, star, eu, right) = match.groups()
+            (left, a_and_o, star, e_and_u, right) = match.groups()
 
-        if ao == "" and len(eu) != 0 and right != "":
+        if a_and_o == "" and len(e_and_u) != 0 and right != "":
             # Remove the vowels.
             middle = "*" if star == "*" else "-"
             new_syllables_steno[i] = left + middle + right
@@ -280,11 +342,30 @@ def postprocess_steno_sequence(steno_sequence, syllables_ipa):
 
 # Perform custom postprocessing after the entire dictionary's been generated.
 def postprocess_generated_dictionary(word_and_definitions):
+    """Make custom modifications to the generated steno dictionary.
+
+    This can be used to resolve homophone conflicts for example, by looping
+    through all entries and checking if the the stroke sequence for the
+    current word is already taken and if so, appending some distinguishing
+    stroke to make it unique.
+
+    Args:
+        word_and_definitions: A list of tuples where the first item in each
+            tuple is the word to translate into steno and the second item in
+            the tuple is a list of strings, with each string being a way to
+            write the word in steno.
+
+    Returns:
+        A string that is the stroke sequence after applying any modifications.
+        This should be the input `steno_sequence` if no modifications are
+        desired for this sequence.
+    """
+
     # If a desired definition is already taken, append a 'W-B' stroke until
     # it's unique.
     used_definitions = set()
 
-    for i, (_, definitions) in enumerate(word_and_definitions):
+    for _, (_, definitions) in enumerate(word_and_definitions):
         for k, strokes in enumerate(definitions):
             while strokes in used_definitions:
                 strokes += "/W-B"

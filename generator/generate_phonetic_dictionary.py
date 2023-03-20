@@ -1,10 +1,21 @@
+"""Create a steno dictionary from a word list and their pronunciations.
+
+The word list is given by a file containing each word to make an entry for on a
+separate line. The pronunciations are given by a separate file that lists words
+along with their IPA pronunciation; for example, the files found here:
+https://github.com/open-dict-data/ipa-dict
+"""
+
 import argparse
 import logging
 
-import config, core
+import config
+import core
 
 
 def get_args():
+    """Parse command-line arguments."""
+
     # Create an ArgumentParser object.
     parser = argparse.ArgumentParser(description="Generate steno strokes phonetically.")
 
@@ -25,8 +36,11 @@ def get_args():
 
 
 def main():
+    """Run the dictionary generator using command-line arguments."""
+
     args = get_args()
 
+    # Setup logging.
     log_level = logging.WARNING
     if args.verbose == 1:
         log_level = logging.INFO
@@ -39,9 +53,10 @@ def main():
 
     # Make sure the config is valid.
     if not core.vowel_to_steno_is_complete() or not core.consonant_to_steno_is_complete():
-        log.info(f"Not generating dictionary")
+        log.info("Not generating dictionary")
         return
 
+    # Create the dictionary.
     words_and_strokes = core.generate_dictionary(args.ipa_file, args.word_list_file)
     words_and_strokes = config.postprocess_generated_dictionary(words_and_strokes)
     core.write_dictionary_to_file(words_and_strokes, args.output_file)
