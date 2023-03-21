@@ -128,6 +128,9 @@ def write_dictionary_to_file(words_and_strokes, output_file):
         output_file: the name of the output file. This should be a JSON file.
     """
 
+    num_entries = 0
+    num_strokes = 0
+
     with open(output_file, "w+", encoding="UTF-8") as output:
         output.write("{\n")
 
@@ -139,4 +142,9 @@ def write_dictionary_to_file(words_and_strokes, output_file):
 
                 output.write(f"{line}\n")
 
+                num_entries += 1
+                num_strokes += 1 + strokes.count("/")
+
         output.write("}")
+
+    print(f"Generated {num_strokes} strokes for {num_entries} entries")
