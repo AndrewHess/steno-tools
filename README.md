@@ -18,9 +18,11 @@ Stenography is a fascinating and efficient way of writing, used by court reporte
 - [License](#license)
 - [Contributing](#contributing)
 
-## Requirements
+## Installation and Requirements
 
 The code was designed to work with Python3.11. You can download Python from the official [Python webiste](https://www.python.org/downloads/).
+
+To install Steno Tools, run `git clone https://github.com/AndrewHess/steno-tools.git` in your terminal.
 
 ## Generate a Phonetic Dictionary
 
@@ -28,11 +30,10 @@ Steno Tools allows you to generate a phonetic steno dictionary by providing a li
 
 ### Usage
 
-1. Install the program either by running `git clone https://github.com/AndrewHess/steno-tools.git` or by downloading the `generator` folder.
-2. Download a CSV file that maps words to their pronunciation in IPA. A good choice is to go to https://github.com/open-dict-data/ipa-dict/releases/tag/1.0 and download the `csv.zip` file, unzip it, and extract the file for your language (e.g., `en_US.csv` for American English).
-3. Create a file containing the words that you want to include in the generated dictionary. There should be one word per line. A good option is to download the list of most frequently used English words from https://www.kaggle.com/datasets/rtatman/english-word-frequency and then clean it up by removing the comma and number after each word, capitalizing certain words, and anything else you want to do.
-4. In a terminal, go into the `generator` directory of this repository.
-5. Run `python generate_phonetic_dictionary.py /path/to/en_US.csv /path/to/your_word_list`.
+1. Download a CSV file that maps words to their pronunciation in IPA. A good choice is to go to https://github.com/open-dict-data/ipa-dict/releases/tag/1.0 and download the `csv.zip` file, unzip it, and extract the file for your language (e.g., `en_US.csv` for American English).
+2. Create a file containing the words that you want to include in the generated dictionary. There should be one word per line. A good option is to download the list of most frequently used English words from https://www.kaggle.com/datasets/rtatman/english-word-frequency and then clean it up by removing the comma and number after each word, capitalizing certain words, and anything else you want to do.
+3. In a terminal, go into the `generator` directory of this repository.
+4. Run `python generate_phonetic_dictionary.py /path/to/en_US.csv /path/to/your_word_list`.
 
 To see usage options, run `python generate_phonetic_dictionary.py -h`. To write the emitted logs to `logs.txt` rather than standard output, append ` 2> logs.txt` to your command.
 
