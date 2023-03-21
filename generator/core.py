@@ -82,15 +82,16 @@ def generate_dictionary(ipa_file, word_list_file):
         for line in file:
             num_words_requested += 1
             word = line.strip()
+            word_lower = word.lower()
             word_in_steno = []  # A list of ways to write the word.
 
             log.debug("Translating `%s`", word)
 
-            if word not in word_to_ipa:
+            if word_lower not in word_to_ipa:
                 log.warning("No translation for `%s` (missing IPA entry)", word)
                 continue
 
-            for ipa in word_to_ipa[word]:
+            for ipa in word_to_ipa[word_lower]:
                 syllables = ipa_utils.split_ipa_into_syllables(ipa)
 
                 if syllables is None:
