@@ -13,6 +13,8 @@ Stenography is a fascinating and efficient way of writing, used by court reporte
   - [Customizing the Default Theory](#customizing-the-generated-theory)
     - [Customizing Phonemes](#customizing-phonemes)
     - [Postprocessing Strokes](#postprocessing-strokes)
+- [Combine Dictionaries](#combine-dictionaries)
+  - [Usage](#usage-1)
 - [License](#license)
 - [Contributing](#contributing)
 
@@ -30,7 +32,9 @@ Steno Tools allows you to generate a phonetic steno dictionary by providing a li
 2. Download a CSV file that maps words to their pronunciation in IPA. A good choice is to go to https://github.com/open-dict-data/ipa-dict/releases/tag/1.0 and download the `csv.zip` file, unzip it, and extract the file for your language (e.g., `en_US.csv` for American English).
 3. Create a file containing the words that you want to include in the generated dictionary. There should be one word per line. A good option is to download the list of most frequently used English words from https://www.kaggle.com/datasets/rtatman/english-word-frequency and then clean it up by removing the comma and number after each word, capitalizing certain words, and anything else you want to do.
 4. In a terminal, go into the `generator` directory of this repository.
-5. Run `python generate_phonetic_dictionary.py /path/to/en_US.csv /path/to/your_word_list`. To see usage options, run `python generate_phonetic_dictionary.py -h`. To write the emitted logs to `logs.txt` rather than standard output, append ` 2> logs.txt` to your command.
+5. Run `python generate_phonetic_dictionary.py /path/to/en_US.csv /path/to/your_word_list`.
+
+To see usage options, run `python generate_phonetic_dictionary.py -h`. To write the emitted logs to `logs.txt` rather than standard output, append ` 2> logs.txt` to your command.
 
 ### Default Theory
 
@@ -63,6 +67,16 @@ You may want to modify the generated strokes in a non-phonetic way. For example,
 Add any postprocessing that is independent of other generated strokes to `postprocess_steno_sequence()`. For example, for words whose last syllable is `ʃən` (the `SHUN` sound in `ration`), you may want to fold that ending into the previous stroke by adding `-GS`.
 
 Add any postprocessing that is dependent on other generated strokes to `postprocess_generated_dictionary()`.  For example, you may want to remove conflicts where multiple words were given the same steno sequence. One way to solve this is by iterating through all of the steno sequences for all words and if that sequence is already used by a previous word, keep appending a disambiguation stroke until the sequence is unique.
+
+## Combine Dictionaries
+
+You may want to split your steno dictionaries into different files for better organization, but be able to easily toggle them on and off en masse. The `combine_dictionaries.py` script allows you to combine all the dictionaries in a specified directory into a single dictionary. This can be helpful if you want to split your main dictionary into normal words, proper nouns, written numbers, dates, etc. but you know that whenever you want one of these dictionaries to be active, you want them all to be active.
+
+### Usage
+1. In a terminal, run `cd /path/to/your/dictionaries`
+2. Run `python /path/to/steno-tools/combine_dictionaries.py <directory>` where `<directory>` is the name of the folder containing the dictionaries you want to combine.
+
+To see usage options, run `python /path/to/steno-tools/combine_dictionaries.py -h`.
 
 ## License
 
