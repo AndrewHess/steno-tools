@@ -45,7 +45,8 @@ Additionally, there's some postprocessing that's done by default. This consists 
 1. For multistroke translations, if the vowel keys for the stroke consist only of `E`, `U`, or `EU` and the stroke is not the first stroke in the sequence, the vowels are removed from the stroke. For example, the generated stroke for `instead` will be `EUPB/ST-D` instead of `EUPB/STED`.
 2. Strokes can use the `-F` for a right-side `s` sound, but if the `s` sound is the last sound in the syllable it must be produced with the `-S` key.
 3. If the final stroke in a multistroke translation is `ʃən` (the `SHUN` sound in `ration`), that stroke is folded into the previous stroke by adding `-GS` to the previous stroke.
-4. If a stroke sequence for one word is already used for a different word, the stroke `W-B` is repeatedly appended to the sequence until the sequence is unique.
+4. If a non-final stroke in a stroke sequence consists entirely of `TK` plus `AOE`, `E`, `EU`, or `U`, the vowels are removed and the stroke becomes `TK-`. This is because those types of strokes can often be pronounced several of those ways (e.g., the first syllable of the word `develop`) and removing the vowels doesn't seem to add many conflicts.
+5. If a stroke sequence for one word is already used for a different word, the stroke `W-B` is repeatedly appended to the sequence until the sequence is unique.
 
 ### Customizing the Default Theory
 
