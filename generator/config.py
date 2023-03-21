@@ -337,6 +337,14 @@ def postprocess_steno_sequence(steno_sequence, syllables_ipa):
             new_syllables_steno = new_syllables_steno[:-1]
             new_syllables_steno[-1] = prev
 
+    # If a stroke other than the last one in a multistroke entry conssists
+    # entirely of 'TK' plus either 'AOE', 'E', 'EU', or 'U', then remvoe the
+    # vowels. This is becuase such words (such as 'develop') can often be
+    # pronunced in several of these ways.
+    for i, stroke in enumerate(new_syllables_steno[:-1]):
+        if len(stroke) > 2 and stroke[:2] == "TK" and stroke[2:] in ["AOE", "E", "EU", "U"]:
+            new_syllables_steno[i] = "TK-"
+
     return "/".join(new_syllables_steno)
 
 
