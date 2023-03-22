@@ -1,4 +1,4 @@
-name: Pylint
+name: Python Styling
 
 on: [push]
 
@@ -17,7 +17,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pylint
+        pip install pylint black
     - name: Analysing the code with pylint
       run: |
         min_allowed_lint_score_per_file=9.0
@@ -25,6 +25,12 @@ jobs:
         echo "Min allowed score per file is $min_allowed_lint_score_per_file"
         for file in $(git ls-files '*.py')
         do
-          echo "Linting `$file`"
+          echo "Linting $file"
           pylint "$file" --fail-under $min_allowed_lint_score_per_file
         done
+    - name: Analysing the code with black
+      run: |
+        max_line_length=99
+        
+        echo "Max line length is $max_line_length"
+        black . --check -l $max_line_length -t py311
