@@ -4,6 +4,7 @@ on: [push]
 
 jobs:
   build:
+    name: Python Formatting
     runs-on: ubuntu-latest
     strategy:
       matrix:
