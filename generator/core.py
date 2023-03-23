@@ -64,8 +64,8 @@ def generate_dictionary(ipa_file, word_list_file):
             generated.
     Returns:
         A list of tuples where theh first item in each tuple is a word from
-        `word_list_file` and the second item in the tuple is a list of strings,
-        with each string being a way to write the word in steno.
+        `word_list_file` and the second item in the tuple is a list of
+        StrokeSequences, giving the valid ways to steno that word.
     """
 
     # Make a list of tuples. The first part of the tuple is the desired word,
@@ -103,7 +103,7 @@ def generate_dictionary(ipa_file, word_list_file):
                     log.debug("Generated %s for `%s`", translations, word)
                     translations_for_word += translations
 
-            # Remove duplicate steno sequences.
+            # Remove duplicate translations.
             translations_for_word = sorted(list(set(translations_for_word)))
 
             if len(translations_for_word) == 0:
@@ -124,7 +124,7 @@ def write_dictionary_to_file(words_and_translations, output_file):
     """Write steno strokes for words to a file in JSON format.
 
     Args:
-        words_and_translations: the returned value from generate_dictionary()
+        words_and_translations: the returned value from generate_dictionary().
         output_file: the name of the output file. This should be a JSON file.
     """
 

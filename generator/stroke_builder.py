@@ -58,9 +58,9 @@ def syllables_to_steno(syllables):
         syllables: A list of Syllables (see syllable.py)
 
     Returns:
-        A list of strings. Each string is way to write `syllables` in steno
-        given the rules for syllable splitting, postprocessing, and phoneme to
-        steno key conversion in config.py.
+        A list of StrokeSequences. Each stroke sequence is a way to steno the
+        word for the input syllables given the rules for syllable splitting,
+        postprocessing, and phoneme to steno key conversion.
     """
 
     log = logging.getLogger("dictionary_generator")

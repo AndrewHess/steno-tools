@@ -82,11 +82,10 @@ STRESS_MARKERS = ["ˈ", "ˌ"]
 #
 # Each vowel in VOWELS must have an entry here.
 #
-# If there are multiple ways to write the sound, the value should be a list of
-# strings with each string being a way to write it.
-#
-# If the sound should be stenoed with the star key, add a "*" character
-# anywhere in the string.
+# The value of each entry should be a list of ways to translate the phoneme to
+# steno; each way to translate it should itself be a list specifying the keys to
+# press and those keys should be in steno order. If the sound should be stenoed
+# with the star key, add Key.STAR anywhere in the inner list.
 VOWEL_TO_STENO = {
     ############ American English Vowels ############
     "ɪ": [[Key.E, Key.U]],
@@ -123,11 +122,10 @@ VOWEL_TO_STENO = {
 # Each consonant in CONSONANTS must have an entry here; if it's not a valid
 # left-side consonant sound its value should be NO_STENO_MAPPING.
 #
-# If there are multiple ways to write the sound with left-side consonants, the
-# value should be a list of strings with each string being a way to write it.
-#
-# If the sound should be stenoed with the star key, add a "*" character
-# anywhere in the string.
+# The value of each entry should be a list of ways to translate the phoneme to
+# steno; each way to translate it should itself be a list specifying the keys to
+# press and those keys should be in steno order. If the sound should be stenoed
+# with the star key, add Key.STAR anywhere in the inner list.
 LEFT_CONSONANT_TO_STENO = {
     "b": [[Key.LP, Key.LW]],
     "d": [[Key.LT, Key.LK]],
@@ -165,11 +163,10 @@ LEFT_CONSONANT_TO_STENO = {
 # Each consonant in CONSONANTS must have an entry here; if it's not a valid
 # right-side consonant sound its value should be NO_STENO_MAPPING.
 #
-# If there are multiple ways to write the sound with right-side consonants, the
-# value should be a list of strings with each string being a way to write it.
-#
-# If the sound should be stenoed with the star key, add a "*" character
-# anywhere in the string.
+# The value of each entry should be a list of ways to translate the phoneme to
+# steno; each way to translate it should itself be a list specifying the keys to
+# press and those keys should be in steno order. If the sound should be stenoed
+# with the star key, add Key.STAR anywhere in the inner list.
 RIGHT_CONSONANT_TO_STENO = {
     "b": [[Key.RB]],
     "d": [[Key.RD]],
@@ -279,26 +276,21 @@ def can_prepend_to_onset(phoneme, onset):
     return False
 
 
-def postprocess_steno_sequence(steno_sequence, syllables_ipa):
+def postprocess_steno_sequence(stroke_sequence, syllables_ipa):
     """Make custom modifications to a generated stroke sequence.
 
     Args:
-        steno_sequence: a string specifying the generated steno strokes. Each
-            stroke is separated by a forward slash.
+        stroke_sequence: A StrokeSequence.
         syllables_ipa: A list of Syllables, giving the pronunciation for the
             translated word via IPA. See syllable.py for more info on a
             Syllable.
 
     Returns:
-        A string that is the stroke sequence after applying any modifications.
-        This should be the input `steno_sequence` if no modifications are
-        desired for this sequence.
+        The updated StrokeSequence to use. This should be the input
+        `stroke_sequence` if no modifications are desired for this sequence.
     """
 
-    # syllables_steno = steno_sequence.split("/")
-    # new_syllables_steno = syllables_steno.copy()
-
-    new_strokes = steno_sequence.get_strokes().copy()
+    new_strokes = stroke_sequence.get_strokes().copy()
 
     # If a stroke after the first has 'U', 'EU', or 'E' as its vowel and it has
     # following consonants, replace the vowel cluster with '-' (or '*' if the
@@ -364,13 +356,12 @@ def postprocess_generated_dictionary(word_and_translations):
     Args:
         word_and_definitions: A list of tuples where the first item in each
             tuple is the word to translate into steno and the second item in
-            the tuple is a list of strings, with each string being a way to
-            write the word in steno.
+            the tuple is a StrokeSequences, with each StrokeSequence being a way
+            to write the word in steno.
 
     Returns:
-        A string that is the stroke sequence after applying any modifications.
-        This should be the input `steno_sequence` if no modifications are
-        desired for this sequence.
+        An updated version of the input after applying any modifications to the
+        each StrokeSequence.
     """
 
     # If a desired definition is already taken, append a 'W-B' stroke until
