@@ -1,6 +1,7 @@
 """Manage steno keys, strokes, and sequences of strokes."""
 
 from enum import Enum
+import logging
 
 
 class MissingDashInStrokeError(Exception):
@@ -159,7 +160,15 @@ class Stroke:
         if not past_middle:
             raise MissingDashInStrokeError()
 
-        return Stroke(keys=keys)
+        log = logging.getLogger("dictionary_generator")
+        log.debug("Converted `%s` to keys: `%s`", stroke_str, keys)
+
+        try:
+            stroke = Stroke(keys=keys)
+        except OutOfStenoOrderError as err:
+            raise OutOfStenoOrderError(f"`{stroke_str}` is out of steno order") from err
+
+        return stroke
 
     def add_keys_maintain_steno_order(self, keys):
         """Add keys to this stroke while ensuring steno order is maintained.
@@ -177,6 +186,22 @@ class Stroke:
                 if key.index < self._last_active_pos:
                     raise OutOfStenoOrderError()
 
+                self._last_active_pos = key.index
+
+            self._active_keys_bitmap[key.index] = True
+
+    def add_keys_ignore_steno_order(self, keys):
+        """Add keys to this stroke regardless of steno order.
+
+        Note: Use add_keys_maintain_steno_order() instead if you want to ensure
+        that appending the keys does not mess up the stroke's steno order.
+
+        Args:
+            keys: list(Key)
+        """
+
+        for key in keys:
+            if key not in [Key.NUM, Key.STAR]:
                 self._last_active_pos = key.index
 
             self._active_keys_bitmap[key.index] = True
@@ -232,6 +257,58 @@ class Stroke:
         for key in Key:
             if self._active_keys_bitmap[key.index]:
                 keys.append(key)
+
+        return keys
+
+    def has_left_consonant(self):
+        """Return True if the stroke has a left consonant key active."""
+
+        return self._has_active_key_between(Key.LS, Key.LR)
+
+    def has_right_consonant(self):
+        """Return True if the stroke has a right consonant key active."""
+
+        return self._has_active_key_between(Key.RF, Key.RZ)
+
+    def _has_active_key_between(self, min_key, max_key):
+        """True if a key between min_key and max_key (both inclusive) is on."""
+        for i in range(min_key.index, max_key.index + 1):
+            if self._active_keys_bitmap[i]:
+                return True
+
+        return False
+
+    def left_consonants_match(self, other):
+        """Return True both strokes have the same left consonants."""
+
+        return self._regions_match(other, Key.LS, Key.LR, True)
+
+    def vowels_match(self, other):
+        """Return True both strokes have the same vowels."""
+
+        return self._regions_match(other, Key.A, Key.U, True)
+
+    def right_consonants_match(self, other):
+        """Return True both strokes have the same right consonants."""
+
+        return self._regions_match(other, Key.RF, Key.RZ, True)
+
+    def _regions_match(self, other, min_key, max_key, ignore_star):
+        self_region = self._get_active_keys_between(min_key, max_key, ignore_star)
+        other_region = other._get_active_keys_between(min_key, max_key, ignore_star)
+
+        return self_region == other_region
+
+    def _get_active_keys_between(self, min_key, max_key, ignore_star):
+        keys = []
+        key_enum_list = list(Key)
+
+        for i in range(min_key.index, max_key.index + 1):
+            if self._active_keys_bitmap[i]:
+                if ignore_star and key_enum_list[i] is Key.STAR:
+                    continue
+
+                keys.append(key_enum_list[i])
 
         return keys
 

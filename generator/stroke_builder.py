@@ -3,11 +3,12 @@
 import copy
 import logging
 
-import config
+from config import NO_STENO_MAPPING
+import postprocessing
 import steno
 
 
-def get_stroke_components(phonemes, phonemes_to_steno):
+def get_stroke_components(phonemes, func_possible_strokes_for_phoneme):
     """Convert phonemes into their corresponding steno keys.
 
     Args:
@@ -32,15 +33,17 @@ def get_stroke_components(phonemes, phonemes_to_steno):
     ways_to_stroke = [[]]
 
     for phoneme in phonemes:
-        ways_to_write_phoneme = phonemes_to_steno[phoneme]
-        if ways_to_write_phoneme is None:
+        possible_strokes = func_possible_strokes_for_phoneme(phoneme)
+        log.debug("Possible strokes for `%s`: %s", phoneme, [str(s) for s in possible_strokes])
+        if possible_strokes is None:
             log.error("No mapping given for phoneme `%s` in `%s`", phoneme, phonemes)
-        elif ways_to_write_phoneme == config.NO_STENO_MAPPING:
+        elif possible_strokes == NO_STENO_MAPPING:
             log.error("No steno mapping for phoneme `%s` in `%s`", phoneme, phonemes)
             return None
 
         new_ways_to_stroke = []
-        for keys in ways_to_write_phoneme:
+        for stroke in possible_strokes:
+            keys = stroke.get_keys()
             # Append the `keys` list to each list of how to stroke the previous
             # components.
             for partial_stroke in ways_to_stroke:
@@ -51,7 +54,7 @@ def get_stroke_components(phonemes, phonemes_to_steno):
     return ways_to_stroke
 
 
-def syllables_to_steno(syllables):
+def syllables_to_steno(syllables, config):
     """Create a list of possible steno strokes to form the given syllables.
 
     Args:
@@ -68,10 +71,14 @@ def syllables_to_steno(syllables):
 
     for syllable in syllables:
         ways_to_stroke_onset = get_stroke_components(
-            syllable.onset, config.LEFT_CONSONANT_TO_STENO
+            syllable.onset, config.possible_strokes_for_left_consonant
         )
-        ways_to_stroke_nucleus = get_stroke_components([syllable.nucleus], config.VOWEL_TO_STENO)
-        ways_to_stroke_coda = get_stroke_components(syllable.coda, config.RIGHT_CONSONANT_TO_STENO)
+        ways_to_stroke_nucleus = get_stroke_components(
+            [syllable.nucleus], config.possible_strokes_for_vowel
+        )
+        ways_to_stroke_coda = get_stroke_components(
+            syllable.coda, config.possible_strokes_for_right_consonant
+        )
 
         if (
             ways_to_stroke_onset is None
@@ -129,10 +136,13 @@ def syllables_to_steno(syllables):
     # Run custom postprocessing.
     new_translations = []
     for stroke_sequence in translations:
-        new_stroke_sequence = config.postprocess_steno_sequence(stroke_sequence, syllables)
+        new_sequences = postprocessing.postprocess_steno_sequence(
+            stroke_sequence, syllables, config
+        )
 
-        if new_stroke_sequence is not None:
-            new_translations.append(new_stroke_sequence)
+        for sequence in new_sequences:
+            if sequence.get_strokes() != []:
+                new_translations.append(sequence)
 
     translations = new_translations
 
