@@ -70,7 +70,7 @@ def generate_dictionary(ipa_file, word_list_file):
 
     # Make a list of tuples. The first part of the tuple is the desired word,
     # and the second part is a list of ways to write it in steno.
-    words_and_strokes = []
+    words_and_translations = []
     word_to_ipa = ipa_utils.create_ipa_lookup_dictionary(ipa_file)
 
     num_words_requested = 0
@@ -83,7 +83,7 @@ def generate_dictionary(ipa_file, word_list_file):
             num_words_requested += 1
             word = line.strip()
             word_lower = word.lower()
-            word_in_steno = []  # A list of ways to write the word.
+            translations_for_word = []  # A list of ways to write the word.
 
             log.debug("Translating `%s`", word)
 
@@ -101,15 +101,15 @@ def generate_dictionary(ipa_file, word_list_file):
                 translations = stroke_builder.syllables_to_steno(syllables)
                 if translations is not None:
                     log.debug("Generated %s for `%s`", translations, word)
-                    word_in_steno += translations
+                    translations_for_word += translations
 
             # Remove duplicate steno sequences.
-            word_in_steno = list(set(word_in_steno))
+            translations_for_word = sorted(list(set(translations_for_word)))
 
-            if len(word_in_steno) == 0:
+            if len(translations_for_word) == 0:
                 log.warning("No translation for `%s`", word)
             else:
-                words_and_strokes.append((word, word_in_steno))
+                words_and_translations.append((word, translations_for_word))
                 num_words_translated += 1
 
     print(
@@ -117,14 +117,14 @@ def generate_dictionary(ipa_file, word_list_file):
         + f"{num_words_requested} words"
     )
 
-    return words_and_strokes
+    return words_and_translations
 
 
-def write_dictionary_to_file(words_and_strokes, output_file):
+def write_dictionary_to_file(words_and_translations, output_file):
     """Write steno strokes for words to a file in JSON format.
 
     Args:
-        words_and_strokes: the returned value from generate_dictionary()
+        words_and_translations: the returned value from generate_dictionary()
         output_file: the name of the output file. This should be a JSON file.
     """
 
@@ -134,16 +134,16 @@ def write_dictionary_to_file(words_and_strokes, output_file):
     with open(output_file, "w+", encoding="UTF-8") as output:
         output.write("{\n")
 
-        for i, (word, ways_to_stroke) in enumerate(words_and_strokes):
-            for k, strokes in enumerate(ways_to_stroke):
-                line = f'"{strokes}": "{word}"'
-                if i < len(words_and_strokes) - 1 or k < len(ways_to_stroke) - 1:
+        for i, (word, translations) in enumerate(words_and_translations):
+            for k, stroke_sequence in enumerate(translations):
+                line = f'"{str(stroke_sequence)}": "{word}"'
+                if i < len(words_and_translations) - 1 or k < len(translations) - 1:
                     line += ","
 
                 output.write(f"{line}\n")
 
                 num_entries += 1
-                num_strokes += 1 + strokes.count("/")
+                num_strokes += len(stroke_sequence.get_strokes())
 
         output.write("}")
 
