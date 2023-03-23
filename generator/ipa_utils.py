@@ -5,7 +5,6 @@ import random
 import re
 import sys
 
-import config
 from syllable import Syllable
 
 
@@ -94,7 +93,7 @@ def get_ipa_symbols(word_to_ipa):
     return symbols
 
 
-def split_ipa_into_syllables(ipa):
+def split_ipa_into_syllables(ipa, config):
     """Split the pronunciation of a word given by IPA into syllables.
 
     This function was designed for splitting English words into syllables, and
@@ -120,8 +119,8 @@ def split_ipa_into_syllables(ipa):
     # The vowels and consonants lists must be sorted so that entries with more
     # characters appear earlier. This is so that when we look for these
     # phonemes in an IPA definition, we match the longest phonemes if we can.
-    vowels = config.VOWELS
-    consonants = config.CONSONANTS
+    vowels = config.get_vowels()
+    consonants = config.get_consonants()
     vowels = sorted(vowels, key=len, reverse=True)
     consonants = sorted(consonants, key=len, reverse=True)
 
@@ -184,7 +183,8 @@ def split_ipa_into_syllables(ipa):
         # We need to iterate backwards since we'll be prepending.
         for k in range(len(onset_lst) - 1, -1, -1):
             phoneme = onset_lst[k]
-            if config.can_prepend_to_onset(phoneme, new_onset):
+            following_phoneme = new_onset[0] if len(new_onset) > 0 else None
+            if config.can_prepend_to_onset(phoneme, following_phoneme):
                 new_onset = [phoneme] + new_onset
             else:
                 if i == 0:

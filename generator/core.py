@@ -2,56 +2,12 @@
 
 import logging
 
-import config
 import ipa_utils
+import postprocessing
 import stroke_builder
 
 
-def vowel_to_steno_is_complete():
-    """Check if all vowels in config.py have a specified mapping to steno.
-
-    Returns:
-        True if for each entry in config.VOWELS, there is an entry in
-        config.VOWEL_TO_STENO, even if it's config.NO_STENO_MAPPING.
-    """
-
-    all_defined = True
-    log = logging.getLogger("dictionary_generator")
-
-    for vowel in config.VOWELS:
-        if vowel not in config.VOWEL_TO_STENO:
-            all_defined = False
-            log.error("`%s` is in VOWELS but not mapped in VOWEL_TO_STENO", vowel)
-
-    return all_defined
-
-
-def consonant_to_steno_is_complete():
-    """Check if all consonants in config.py have a specified mapping to steno.
-
-    Returns:
-        True if for each entry in config.CONSONANTS, there is an entry in
-        config.CONSONANT_TO_STENO, even if it's config.NO_STENO_MAPPING.
-    """
-
-    all_defined = True
-    log = logging.getLogger("dictionary_generator")
-
-    for consonant in config.CONSONANTS:
-        if consonant not in config.LEFT_CONSONANT_TO_STENO:
-            all_defined = False
-            log.error("`%s` is in CONSONANTS but not mapped in LEFT_CONSONANT_TO_STENO", consonant)
-
-        if consonant not in config.RIGHT_CONSONANT_TO_STENO:
-            all_defined = False
-            log.error(
-                "`%s` is in CONSONANTS but not mapped in RIGHT_CONSONANT_TO_STENO", consonant
-            )
-
-    return all_defined
-
-
-def generate_dictionary(ipa_file, word_list_file):
+def generate_dictionary(ipa_file, word_list_file, config):
     """Create a dictionary mapping a word to ways to write it in steno.
 
     Args:
@@ -63,7 +19,7 @@ def generate_dictionary(ipa_file, word_list_file):
             have an entry in the `ipa_file` then its steno strokes cannot be
             generated.
     Returns:
-        A list of tuples where theh first item in each tuple is a word from
+        A list of tuples where the first item in each tuple is a word from
         `word_list_file` and the second item in the tuple is a list of
         StrokeSequences, giving the valid ways to steno that word.
     """
@@ -92,13 +48,13 @@ def generate_dictionary(ipa_file, word_list_file):
                 continue
 
             for ipa in word_to_ipa[word_lower]:
-                syllables = ipa_utils.split_ipa_into_syllables(ipa)
+                syllables = ipa_utils.split_ipa_into_syllables(ipa, config)
 
                 if syllables is None:
                     continue
 
                 log.debug("Converting %s to steno", [str(s) for s in syllables])
-                translations = stroke_builder.syllables_to_steno(syllables)
+                translations = stroke_builder.syllables_to_steno(syllables, config)
                 if translations is not None:
                     log.debug("Generated %s for `%s`", translations, word)
                     translations_for_word += translations
@@ -115,6 +71,11 @@ def generate_dictionary(ipa_file, word_list_file):
     print(
         f"Generated translations for {num_words_translated} out of "
         + f"{num_words_requested} words"
+    )
+
+    # Perform postprocessing on the whole dictionary.
+    words_and_translations = postprocessing.postprocess_generated_dictionary(
+        words_and_translations, config
     )
 
     return words_and_translations

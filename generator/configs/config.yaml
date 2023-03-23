@@ -1,0 +1,370 @@
+---  # Begin document.
+
+
+############################# Phonemes #############################
+
+# Vowel phonemes that may appear in the IPA pronunciation of words that you
+# want to generate steno strokes for.
+vowels:
+  ############ American English Vowels ############
+  - phoneme: "ɪ" # Ex: mYth, prEtty, wOmen
+    keys: ["EU"]
+  - phoneme: "ɛ" # Ex: brEAd, mAny, mEn
+    keys: ["E"]
+  - phoneme: "æ" # Ex: cAt, fAst, pAss
+    keys: ["A"]
+  - phoneme: "ə" # Ex: bUn, dOne, crUmb
+    keys: ["U"]
+  - phoneme: "ʊ" # Ex: wOOd, pUt
+    keys: ["AO"]
+  - phoneme: "i" # Ex: bEE, mEAt
+    keys: ["AOE"]
+  - phoneme: "ɔ" # Ex: brAWl, tAll, wrOUght, but not rot
+    keys: ["AU"]
+  - phoneme: "u" # Ex: fOOd, whO, blUE
+    keys: ["AOU"] # Note: this is the same as for 'ju'.
+  - phoneme: "ɝ" # Ex: pURR, pERson, dIRty, doctOR
+    keys: ["UR"]
+  - phoneme: "ɑ" # Ex: rOt, but not wrought
+    keys: ["O"]
+  - phoneme: "aɪ" # Ex: EYE, trY, nIght
+    keys: ["AOEU"]
+  - phoneme: "eɪ" # Ex: AYE, glAde
+    keys: ["AEU"]
+  - phoneme: "ɔɪ" # Ex: bOY, nOIse
+    keys: ["OEU"]
+  - phoneme: "aʊ" # Ex: clOWn, nOUn
+    keys: ["OU"]
+  - phoneme: "oʊ" # Ex: OWE, blOW
+    keys: ["OE"]
+  - phoneme: "ɪɹ" # Ex: fEAR, dEER, drEARy
+    keys: ["AOER"]
+  - phoneme: "ɛɹ" # Ex: AIR, glARe, stARE
+    keys: ["AEUR"]
+  - phoneme: "ɔɹ" # Ex: gORe, bOAR, dOOR
+    keys: ["OR"]
+  - phoneme: "ʊɹ" # Ex: pURe, ensURe
+    keys: ["AOUR"]
+  - phoneme: "ɑɹ" # Ex: cAR, sonAR, ARctic
+    keys: ["AR"]
+  ############ Extra Vowel Clusters ############
+  - phoneme: "ju" # Ex: YOU, fEW, pEWter
+    keys: ["AOU"] # Note: this is the same as for just 'u'.
+  - phoneme: "jə" # Sounds the same as 'ju' to me.
+    keys: ["AOU"]
+  - phoneme: "ɝtʃ" # Ex: lURCH, resEARCH
+    keys: ["UFRPB"]
+  - phoneme: "ɑɹtʃ" # Ex: ARCH, mARCH,
+    keys: ["AFRPB"]
+  - phoneme: "ɔɹtʃ" # Ex: tORCH, pORCH
+    keys: ["OFRPB"]
+
+# Consonant phonemes that may appear in the IPA pronunciation of words that
+# you want to generate steno strokes for. If you don't want to add a way to make
+# a certain phoneme with a certain side of the keyboard, set the value to
+# NO_STENO_MAPPING for that side.
+consonants:
+  ############ American English Consonants ############
+  - phoneme: "b"
+    keys_left: ["PW-"]
+    keys_right: ["-B"]
+  - phoneme: "d"
+    keys_left: ["TK-"]
+    keys_right: ["-D"]
+  - phoneme: "f"
+    keys_left: ["TP-"]
+    keys_right: ["-F"]
+  - phoneme: "h"
+    keys_left: ["H-"]
+    keys_right: NO_STENO_MAPPING
+  - phoneme: "j"  # This is a 'y' sound, like Yep, Yarn, You
+    keys_left: ["KWR-"]
+    keys_right: NO_STENO_MAPPING
+  - phoneme: "k"
+    keys_left: ["K-"]
+    keys_right: ["-BG"]
+  - phoneme: "m"
+    keys_left: ["PH-"]
+    keys_right: ["-PL"]
+  - phoneme: "n"
+    keys_left: ["TPH-"]
+    keys_right: ["-PB"]
+  - phoneme: "p"
+    keys_left: ["P-"]
+    keys_right: ["-P"]
+  - phoneme: "s"
+    keys_left: ["S-"]
+    keys_right: ["-S", "-F"]
+  - phoneme: "t"
+    keys_left: ["T-"]
+    keys_right: ["-T"]
+  - phoneme: "v"
+    keys_left: ["SR-"]
+    keys_right: ["-FB"]
+  - phoneme: "w"
+    keys_left: ["W-"]
+    keys_right: NO_STENO_MAPPING
+  - phoneme: "z"
+    keys_left: ["SWR-"]
+    keys_right: ["-Z"]
+  - phoneme: "ð" # Ex: worTHy, furTHer
+    keys_left: ["TH-"]
+    keys_right: ["*-T"]
+  - phoneme: "ŋ" # Ex: struNG, fliNG
+    keys_left: NO_STENO_MAPPING
+    keys_right: ["-PBG"]
+  - phoneme: "ɡ" # Ex: doG, Glue  Note: this is a UTF-8 character, not the letter G.
+    keys_left: ["TKPW-"]
+    keys_right: ["-G"]
+  - phoneme: "ɫ" # Ex: fiLL, terminaL
+    keys_left: ["HR-"]
+    keys_right: ["-L"]
+  - phoneme: "ɹ" # Ex: bRook, gRay
+    keys_left: ["R-"]
+    keys_right: ["-R"]
+  - phoneme: "ʃ" # Ex: wiSH, puSH
+    keys_left: ["SH-"]
+    keys_right: ["-RB"]
+  - phoneme: "ʒ" # Ex: leiSure, fuSion
+    keys_left: ["SKH-"]
+    keys_right: NO_STENO_MAPPING
+  - phoneme: "θ" # Ex: youTH, THin
+    keys_left: ["TH-"]
+    keys_right: ["*-T"]
+  - phoneme: "tʃ" # Ex: gliTCH, beaCH
+    keys_left: ["KH-"]
+    keys_right: ["-FP"]
+  - phoneme: "dʒ" # Ex: JuDGe, friDGe, Germ
+    keys_left: ["SKWR-"]
+    keys_right: ["-PBLG"]
+  ############ Consonant Clusters ############
+  - phoneme: "st" # Ex: firST heiST, burST
+    keys_left: ["ST-"]
+    keys_right: ["-FT", "*S"]
+  - phoneme: "ŋk" # Ex: baNK, thaNKs
+    keys_left: NO_STENO_MAPPING
+    keys_right: ["-PBG"]  # Note: this colides with '-ŋ'
+  - phoneme: "mp" # Ex: raMP, cluMP
+    keys_left: NO_STENO_MAPPING
+    keys_right: ["*PL"]
+  - phoneme: "ntʃ" # Ex: lauNCH, braNCH
+    keys_left: NO_STENO_MAPPING
+    keys_right: ["-FRPB"]
+
+
+############################# Phonology #############################
+
+# This section specifies which consonant phonemes can follow other consonant
+# phonemes before a vowel.
+phonology:
+  # Add your custom allowed rules to the below block.
+  - allowed:
+      # These sounds can come immediately before a vowel.
+      immediately_before_vowel: ["st"]
+
+      # If the previous sound is an element of `prev` and the next sound is an
+      # element of the corresponding `next` array, then `prev + next` is a
+      # valid consonant cluster before a vowel.
+      previous_and_next_sounds:
+        - prev: ["st"]
+          next: ["j", "w", "ɹ"]
+
+  # The below rules are from https://en.wikipedia.org/wiki/English_phonology
+  # You probably shouldn't change this unless:
+  #   1. There's an error or missing rule. Please raise a GitHub Issue or start
+  #      a pull request if that's the case.
+  #   2. You're generating strokes for a different language.
+  - allowed:
+      # These sounds can come immediately before a vowel.
+      immediately_before_vowel: [
+        "b", "d", "f", "h", "j", "k", "m", "n", "p", "s", "t", "v", "w", "z",
+        "ð", "ɡ", "ɫ", "ɹ", "ʃ", "ʒ", "θ", "tʃ", "dʒ"
+      ]
+
+      # If the previous sound is an element of `prev` and the next sound is an
+      # element of the corresponding `next` array, then `prev + next` is a
+      # valid consonant cluster before a vowel.
+      previous_and_next_sounds:
+        # Allow stop plus approximant other than 'j'.
+        - prev: ["p", "b", "k", "ɡ"]
+          next: ["ɫ"]
+        - prev: ["p", "b", "t", "d", "k", "ɡ"]
+          next: ["ɹ"]
+        - prev: ["p", "t", "d", "ɡ", "k"]
+          next: ["w"]
+
+        # Allow voicless fricative or 'v' plus approximant other than 'j'.
+        - prev: ["f", "s", "θ", "ʃ"]
+          next: ["ɫ"]
+        - prev: ["f", "θ", "ʃ"]
+          next: ["ɹ"]
+        - prev: ["h", "s", "θ", "v"]
+          next: ["w"]
+
+        # Allow consonants other than 'ɹ' and 'w' followed by 'j' (which should
+        # be followed by some form of 'u').
+        - prev: [
+            "b", "d", "f", "h", "k", "m", "n", "p", "s", "t", "v", "z","ð", "ɡ",
+            "ɫ", "ʃ", "ʒ", "θ", "tʃ", "dʒ"]
+          next: ["j"]
+
+        # Allow 's' plus voiceless stop.
+        - prev: ["s"]
+          next: ["p", "t", "k"]
+
+        # Allow 's' plus nasal other than 'ŋ'.
+        - prev: ["s"]
+          next: ["m", "n"]
+
+        # Allow 's' plus voiceless non-sibilant fricative.
+        - prev: ["s"]
+          next: ["f", "θ"]
+
+
+############################# Postprocessing #############################
+
+postprocessing:
+    # With this option enabled, a stroke ending in an 's' sound cannot end with
+    # the -F key even if the consonants section above specifies that right-side
+    # 's' can be made with -F.
+    disallow_f_for_final_s_sound:
+      enabled: True
+
+    # This section specifies rules for when a stroke can be folded into the
+    # next or previous stroke. This can be useful for prefix and suffix strokes.
+    # The elements of each rule are:
+    #   enabled: Whether this rule be checked for each stroke.
+    #   keep_original_sequence: When True and this rule applies, keep both the
+    #       original and new stroke sequences.
+    #   strokes_to_fold: A list of strokes. When a generated stroke matches any
+    #       stroke in this list, this rule applies to the stroke.
+    #   keys_to_fold_in: The keys that should be added to the next/previous
+    #       stroke when this rule applies. This stroke must include a dash if it
+    #       doesn't have an asterisk or any vowels.
+    #   fold_into: Either PREVIOUS_STROKE or NEXT_STROKE, specifying which
+    #       stroke the `keys_to_fold_in` will be added to. If the specified
+    #       stroke does not exist (e.g., the value is NEXT_STROKE, but this is
+    #       the last stroke in the sequence, so there is no next stroke in the
+    #       sequence), then this rule will not change the stroke.
+    fold_strokes:
+      enabled: True  # When False, none of the below rules will run.
+      rules:
+        # With this option enabled, when a non-starting stroke is SHUPB, the
+        # stroke is folded into the previous stroke as -GS.
+        - enabled: True
+          keep_original_sequence: False
+          strokes_to_fold: ["SHUPB"]
+          keys_to_fold_in: "-GS"
+          fold_into: PREVIOUS_STROKE
+
+        # With this option enabled, when a non-final stroke is KOPB, KUPB, KOPL,
+        # or KUPL, the stroke is folded into the next stroke as K-.
+        - enabled: False
+          keep_original_sequence: True
+          strokes_to_fold: ["KOPB", "KUPB", "KOPL", "KUPL"]
+          keys_to_fold_in: "K-"
+          fold_into: NEXT_STROKE
+
+    # This section specifies rules for when vowels should be removed from a
+    # stroke. This can be useful for some theories or when a syllable is often
+    # pronounced with several different vowels and removing those vowels from
+    # the stroke doesn't create a lot of conflicts.
+    # The elements of each rule are:
+    #   enabled: Whether this rule be checked for each stroke.
+    #   keep_original_sequence: When True and this rule applies, keep both the
+    #       original and new stroke sequences.
+    #   left_consonants: either ANY_SET_OF_KEYS, ANY_NON_EMPTY_SET_OF_KEYS, or
+    #       the actual keys that must exactly match the left consonants of the
+    #       stroke for the rule to apply. If its specifying the actual keys,
+    #       it must include a dash after the keys.
+    #   right_consonants: either ANY_SET_OF_KEYS, ANY_NON_EMPTY_SET_OF_KEYS, or
+    #       the actual keys that must exactly match the right consonants of the
+    #       stroke for the rule to apply. If its specifying the actual keys,
+    #       it must include a dash before the keys.
+    #   vowel_clusters_to_drop: A list of vowel clusters. The vowels for the
+    #       stroke are only dropped if they exactly match one of the elements
+    #       of this list.
+    #   enabled_for:
+    #       single_strokes: Whether this rule should be checked when a stroke
+    #           sequence consists of only a single stroke.
+    #       first_stroke_of_sequence: Whether this rule should be check when
+    #           the stroke is the first stroke in the stroke sequence.
+    #       middle_strokes_of_sequence: Whether this rule should be check when
+    #           the stroke is neither the first nor last stroke in the stroke
+    #           sequence.
+    #       last_stroke_of_sequence: Whether this rule should be check when
+    #           the stroke is the last stroke in the stroke sequence.
+    drop_vowels:
+      enabled: True
+      rules:
+        # With this option enabled, when a non-starting stroke in a stroke
+        # sequence has vowels that are only E, EU, or U, and there are
+        # right-side consonant, the vowels are removed from the stroke.
+        - enabled: True
+          keep_original_sequence: False
+          left_consonants: ANY_SET_OF_KEYS
+          right_consonants: ANY_NON_EMPTY_SET_OF_KEYS
+          vowel_clusters_to_drop: ["E", "EU", "U"]
+          enabled_for:
+            single_strokes: False
+            first_stroke_of_sequence: False
+            middle_strokes_of_sequence: True
+            last_stroke_of_sequence: True
+
+        # With this option enabled, when a stroke consists entirely of TK- plus
+        # some vowels and those vowels are AOE, E, EU, or U, the vowels are
+        # removed.
+        - enabled: True
+          keep_original_sequence: False
+          left_consonants: "TK-"
+          right_consonants: "-"
+          vowel_clusters_to_drop: ["AOE", "E", "EU", "U"]
+          enabled_for:
+            single_strokes: False
+            first_stroke_of_sequence: True
+            middle_strokes_of_sequence: True
+            last_stroke_of_sequence: False
+
+        # With this option enabled, when a stroke consists entirely of PW- plus
+        # some vowels and those vowels are AOE, E, EU, or U, the vowels are
+        # removed.
+        - enabled: False
+          keep_original_sequence: True
+          left_consonants: "PW-"
+          right_consonants: "-"
+          vowel_clusters_to_drop: ["AOE", "E", "EU", "U"]
+          enabled_for:
+            single_strokes: False
+            first_stroke_of_sequence: True
+            middle_strokes_of_sequence: True
+            last_stroke_of_sequence: False
+
+        # With this option enabled, when a stroke in the middle of a stroke
+        # sequence consists only of vowel keys, that stroke is removed.
+        - enabled: False
+          keep_original_sequence: True
+          left_consonants: "-"
+          right_consonants: "-"
+          vowel_clusters_to_drop: [
+            "A", "O", "E", "U", "AO", "AE", "AU", "OE", "OU", "AOE", "AOU", "OEU", "AOEU"
+          ]
+          enabled_for:
+            single_strokes: False
+            first_stroke_of_sequence: False
+            middle_strokes_of_sequence: True
+            last_stroke_of_sequence: False
+
+    # With this option enabled, when the same stroke sequence was generated for
+    # two different words, a stroke is repeatedly appended to one of the
+    # stroke sequences until it is unique.
+    #
+    # The stroke sequence that gets appended is the one for the word that
+    # appears later in the file continaing the words to generated strokes for.
+    # So if the words are sorted by higher frequecy closer to the top, then the
+    # less frequent word will get the extra stroke(s).
+    append_disambiguator_stroke:
+      enabled: True
+      disambiguator_stroke: "W-B"
+
+
+...  # End document.

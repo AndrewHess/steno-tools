@@ -1,379 +1,622 @@
 """Configuration for the steno dictionary generator."""
 
+import copy
 import logging
+import schema
+import yaml
 
 import steno
-from steno import Key
 
 
-STENO_ORDER = "STKPWHRAOEUFRPBLGTSDZ"  # Excludes the '*'.
 NO_STENO_MAPPING = "NO_STENO_MAPPING"
 
-# Vowel phonemes that may appear in the IPA pronunciation of words that you
-# want to generate steno strokes for.
-VOWELS = [
-    ############ American English Vowels ############
-    "ɪ",  # Ex: mYth, prEtty, wOmen
-    "ɛ",  # Ex: brEAd, mAny, mEn
-    "æ",  # Ex: cAt, fAst, pAss
-    "ə",  # Ex: bUn, dOne, crUmb
-    "ʊ",  # Ex: wOOd, pUt
-    "i",  # Ex: bEE, mEAt
-    "ɔ",  # Ex: brAWl, tAll, wrOUght, but not rot
-    "u",  # Ex: fOOd, whO, blUE
-    "ɝ",  # Ex: pURR, pERson, dIRty, doctOR
-    "ɑ",  # Ex: rOt, but not wrought
-    "aɪ",  # Ex: EYE, trY, nIght
-    "eɪ",  # Ex: AYE, glAde
-    "ɔɪ",  # Ex: bOY, nOIse
-    "aʊ",  # Ex: clOWn, nOUn
-    "oʊ",  # Ex: OWE, blOW
-    "ɪɹ",  # Ex: fEAR, dEER, drEARy
-    "ɛɹ",  # Ex: AIR, glARe, stARE
-    "ɔɹ",  # Ex: gORe, bOAR, dOOR
-    "ʊɹ",  # Ex: pURe, ensURe
-    "ɑɹ",  # Ex: cAR, sonAR, ARctic
-    ############ Extra Vowel Clusters ############
-    "ju",  # Ex: YOU, fEW, pEWter
-    "jə",  # Sounds the same as 'ju' to me.
-    "ɝtʃ",  # Ex: lURCH, resEARCH
-    "ɑɹtʃ",  # Ex: ARCH, mARCH,
-    "ɔɹtʃ",  # Ex: tORCH, pORCH
-]
+_STR_ANY_SET_OF_KEYS = "ANY_SET_OF_KEYS"
+_STR_ANY_NON_EMPTY_SET_OF_KEYS = "ANY_NON_EMPTY_SET_OF_KEYS"
+_STR_NEXT_STROKE = "NEXT_STROKE"
+_STR_PREVIOUS_STROKE = "PREVIOUS_STROKE"
 
-# Consonant phonemes that may appear in the IPA pronunciation of words that
-# you want to generate steno strokes for.
-CONSONANTS = [
-    "b",
-    "d",
-    "f",
-    "h",
-    "j",  # This is a 'y' sound, like Yep, Yarn, You
-    "k",
-    "m",
-    "n",
-    "p",
-    "s",
-    "t",
-    "v",
-    "w",
-    "z",
-    "ð",  # Ex: worTHy, furTHer
-    "ŋ",  # Ex: struNG, fliNG
-    "ɡ",  # Ex: doG, Glue  Note: this is a UTF-8 char, not the letter G.
-    "ɫ",  # Ex: fiLL, terminaL
-    "ɹ",  # Ex: bRook, gRay
-    "ʃ",  # Ex: wiSH, puSH
-    "ʒ",  # Ex: leiSure, fuSion
-    "θ",  # Ex: youTH, THin
-    "tʃ",  # Ex: gliTCH, beaCH
-    "dʒ",  # Ex: JuDGe, friDGe, Germ
-    ############ Consonant Clusters ############
-    "st",  # Ex: firST heiST, burST
-    "ŋk",  # Ex: baNK, thaNKs
-    "mp",  # Ex: raMP, cluMP
-    "ntʃ",  # Ex: lauNCH, braNCH
-]
+_STR_VOWELS = "vowels"
+_STR_PHONEME = "phoneme"
+_STR_KEYS = "keys"
 
-# IPA symbols used to denote the stress of the following syllable.
-STRESS_MARKERS = ["ˈ", "ˌ"]
+_STR_CONSONANTS = "consonants"
+_STR_KEYS_LEFT = "keys_left"
+_STR_KEYS_RIGHT = "keys_right"
 
-# Specify how each vowel in VOWELS should be translated to steno.
-#
-# Each vowel in VOWELS must have an entry here.
-#
-# The value of each entry should be a list of ways to translate the phoneme to
-# steno; each way to translate it should itself be a list specifying the keys to
-# press and those keys should be in steno order. If the sound should be stenoed
-# with the star key, add Key.STAR anywhere in the inner list.
-VOWEL_TO_STENO = {
-    ############ American English Vowels ############
-    "ɪ": [[Key.E, Key.U]],
-    "ɛ": [[Key.E]],
-    "æ": [[Key.A]],
-    "ə": [[Key.U]],
-    "ʊ": [[Key.A, Key.O]],
-    "i": [[Key.A, Key.O, Key.E]],
-    "ɔ": [[Key.A, Key.U]],
-    "u": [[Key.A, Key.O, Key.U]],  # Note: this is the same as for 'ju'.
-    "ɝ": [[Key.U, Key.RR]],
-    "ɑ": [[Key.O]],
-    "aɪ": [[Key.A, Key.O, Key.E, Key.U]],
-    "eɪ": [[Key.A, Key.E, Key.U]],
-    "ɔɪ": [[Key.O, Key.E, Key.U]],
-    "aʊ": [[Key.O, Key.U]],
-    "oʊ": [[Key.O, Key.E]],
-    "ɪɹ": [[Key.A, Key.O, Key.E, Key.RR]],
-    "ɛɹ": [[Key.A, Key.E, Key.U, Key.RR]],
-    "ɔɹ": [[Key.O, Key.RR]],
-    "ʊɹ": [[Key.A, Key.O, Key.U, Key.RR]],
-    "ɑɹ": [[Key.A, Key.RR]],
-    ############ Extra Vowel Clusters ############
-    "ju": [[Key.A, Key.O, Key.U]],  # Note: this is the same as for just 'u'.
-    "jə": [[Key.A, Key.O, Key.U]],
-    "ɝtʃ": [[Key.U, Key.RF, Key.RR, Key.RP, Key.RB]],
-    "ɑɹtʃ": [[Key.A, Key.RF, Key.RR, Key.RP, Key.RB]],
-    "ɔɹtʃ": [[Key.O, Key.RF, Key.RR, Key.RP, Key.RB]],
-}
+_STR_PHONOLOGY = "phonology"
+_STR_ALLOWED = "allowed"
+_STR_IMMEDIATELY_BEFORE_VOWEL = "immediately_before_vowel"
+_STR_PREV_AND_NEXT = "previous_and_next_sounds"
+_STR_PREV = "prev"
+_STR_NEXT = "next"
 
-# Specify how each consonant in CONSONANTS should be translated to steno using
-# the left side consonants.
-#
-# Each consonant in CONSONANTS must have an entry here; if it's not a valid
-# left-side consonant sound its value should be NO_STENO_MAPPING.
-#
-# The value of each entry should be a list of ways to translate the phoneme to
-# steno; each way to translate it should itself be a list specifying the keys to
-# press and those keys should be in steno order. If the sound should be stenoed
-# with the star key, add Key.STAR anywhere in the inner list.
-LEFT_CONSONANT_TO_STENO = {
-    "b": [[Key.LP, Key.LW]],
-    "d": [[Key.LT, Key.LK]],
-    "f": [[Key.LT, Key.LP]],
-    "h": [[Key.LH]],
-    "j": [[Key.LK, Key.LW, Key.LR]],
-    "k": [[Key.LK]],
-    "m": [[Key.LP, Key.LH]],
-    "n": [[Key.LT, Key.LP, Key.LH]],
-    "p": [[Key.LP]],
-    "s": [[Key.LS]],
-    "t": [[Key.LT]],
-    "v": [[Key.LS, Key.LR]],
-    "w": [[Key.LW]],
-    "z": [[Key.LS, Key.LW, Key.LR]],
-    "ð": [[Key.LT, Key.LH]],
-    "ŋ": NO_STENO_MAPPING,
-    "ɡ": [[Key.LT, Key.LK, Key.LP, Key.LW]],
-    "ɫ": [[Key.LH, Key.LR]],
-    "ɹ": [[Key.LR]],
-    "ʃ": [[Key.LS, Key.LH]],
-    "ʒ": [[Key.LS, Key.LK, Key.LH]],
-    "θ": [[Key.LT, Key.LH]],
-    "tʃ": [[Key.LK, Key.LH]],
-    "dʒ": [[Key.LS, Key.LK, Key.LW, Key.LR]],
-    "st": [[Key.LS, Key.LT]],
-    "ŋk": NO_STENO_MAPPING,
-    "mp": NO_STENO_MAPPING,
-    "ntʃ": NO_STENO_MAPPING,
-}
-
-# Specify how each consonant in CONSONANTS should be translated to steno using
-# the right-side consonants.
-#
-# Each consonant in CONSONANTS must have an entry here; if it's not a valid
-# right-side consonant sound its value should be NO_STENO_MAPPING.
-#
-# The value of each entry should be a list of ways to translate the phoneme to
-# steno; each way to translate it should itself be a list specifying the keys to
-# press and those keys should be in steno order. If the sound should be stenoed
-# with the star key, add Key.STAR anywhere in the inner list.
-RIGHT_CONSONANT_TO_STENO = {
-    "b": [[Key.RB]],
-    "d": [[Key.RD]],
-    "f": [[Key.RF]],
-    "h": NO_STENO_MAPPING,
-    "j": NO_STENO_MAPPING,
-    "k": [[Key.RB, Key.RG]],
-    "m": [[Key.RP, Key.RL]],
-    "n": [[Key.RP, Key.RB]],
-    "p": [[Key.RP]],
-    "s": [[Key.RS], [Key.RF]],
-    "t": [[Key.RT]],
-    "v": [[Key.RF, Key.RB]],
-    "w": NO_STENO_MAPPING,
-    "z": [[Key.RZ]],
-    "ð": [[Key.STAR, Key.RT]],
-    "ŋ": [[Key.RP, Key.RB, Key.RG]],
-    "ɡ": [[Key.RG]],
-    "ɫ": [[Key.RL]],
-    "ɹ": [[Key.RR]],
-    "ʃ": [[Key.RR, Key.RB]],
-    "ʒ": NO_STENO_MAPPING,
-    "θ": [[Key.STAR, Key.RT]],
-    "tʃ": [[Key.RF, Key.RP]],
-    "dʒ": [[Key.RP, Key.RB, Key.RL, Key.RG]],
-    "st": [[Key.RF, Key.RT], [Key.STAR, Key.RS]],
-    "ŋk": [[Key.RP, Key.RB, Key.RG]],  # Note: this colides with 'ŋ'.
-    "mp": [[Key.STAR, Key.RP, Key.RL]],
-    "ntʃ": [[Key.RF, Key.RR, Key.RP, Key.RB]],
-}
+_STR_POSTPROCESSING = "postprocessing"
+_STR_ENABLED = "enabled"
+_STR_RULES = "rules"
+_STR_KEEP_ORIGINAL = "keep_original_sequence"
+_STR_DISALLOW_F_FOR_FINAL_S = "disallow_f_for_final_s_sound"
+_STR_FOLD_STROKES = "fold_strokes"
+_STR_STROKES_TO_FOLD = "strokes_to_fold"
+_STR_KEYS_TO_FOLD_IN = "keys_to_fold_in"
+_STR_FOLD_INTO = "fold_into"
+_STR_VOWEL_DROPPING = "drop_vowels"
+_STR_LEFT_CONSONANTS = "left_consonants"
+_STR_RIGHT_CONSONANTS = "right_consonants"
+_STR_VOWEL_CLUSTERS_TO_DROP = "vowel_clusters_to_drop"
+_STR_ENABLED_FOR = "enabled_for"
+_STR_SINGLE_STROKES = "single_strokes"
+_STR_FIRST_STROKE = "first_stroke_of_sequence"
+_STR_MIDDLE_STROKES = "middle_strokes_of_sequence"
+_STR_LAST_STROKE = "last_stroke_of_sequence"
+_STR_APPEND_DISAMBIGUATOR_STROKE = "append_disambiguator_stroke"
+_STR_DISAMBIGUATOR_STROKE = "disambiguator_stroke"
 
 
-def can_prepend_to_onset(phoneme, onset):
-    """Determine if prepending a phoneme to an onset is valid.
+class InvalidConfigError(Exception):
+    """Error for when the config file is not as expected.
 
-    Args:
-        phoneme: an entry in CONSONANTS
-        onset: a list of strings, which are each entries in CONSONANTS
-    Returns:
-        True if prepending `phoneme` to `onset` is phonologically valid.
+    This should be raised when an expected entry is missing or some value in
+    it is not formatted how it should be.
     """
 
-    if phoneme not in CONSONANTS:
-        log = logging.getLogger("dictionary_generator")
-        log.error("Unknown consonant phoneme `%s`", phoneme)
+
+class Config:
+    """Maintain the config settings for how to make strokes from words."""
+
+    CONFIG_SCHEMA = schema.Schema(
+        {
+            _STR_VOWELS: [
+                {
+                    _STR_PHONEME: str,
+                    _STR_KEYS: schema.Or([str], NO_STENO_MAPPING),
+                }
+            ],
+            _STR_CONSONANTS: [
+                {
+                    _STR_PHONEME: str,
+                    _STR_KEYS_LEFT: schema.Or([str], NO_STENO_MAPPING),
+                    _STR_KEYS_RIGHT: schema.Or([str], NO_STENO_MAPPING),
+                }
+            ],
+            _STR_PHONOLOGY: [
+                {
+                    _STR_ALLOWED: {
+                        _STR_IMMEDIATELY_BEFORE_VOWEL: [str],
+                        _STR_PREV_AND_NEXT: [
+                            {
+                                _STR_PREV: [str],
+                                _STR_NEXT: [str],
+                            }
+                        ],
+                    },
+                }
+            ],
+            _STR_POSTPROCESSING: {
+                _STR_DISALLOW_F_FOR_FINAL_S: {_STR_ENABLED: bool},
+                _STR_FOLD_STROKES: {
+                    _STR_ENABLED: bool,
+                    _STR_RULES: [
+                        {
+                            _STR_ENABLED: bool,
+                            _STR_KEEP_ORIGINAL: bool,
+                            _STR_STROKES_TO_FOLD: [str],
+                            _STR_KEYS_TO_FOLD_IN: str,
+                            _STR_FOLD_INTO: schema.Or(_STR_NEXT_STROKE, _STR_PREVIOUS_STROKE),
+                        }
+                    ],
+                },
+                _STR_VOWEL_DROPPING: {
+                    _STR_ENABLED: bool,
+                    _STR_RULES: [
+                        {
+                            _STR_ENABLED: bool,
+                            _STR_KEEP_ORIGINAL: bool,
+                            _STR_LEFT_CONSONANTS: schema.Or(
+                                str,
+                                schema.Or(_STR_ANY_SET_OF_KEYS, _STR_ANY_NON_EMPTY_SET_OF_KEYS),
+                            ),
+                            _STR_RIGHT_CONSONANTS: schema.Or(
+                                str,
+                                schema.Or(_STR_ANY_SET_OF_KEYS, _STR_ANY_NON_EMPTY_SET_OF_KEYS),
+                            ),
+                            _STR_VOWEL_CLUSTERS_TO_DROP: [str],
+                            _STR_ENABLED_FOR: {
+                                _STR_SINGLE_STROKES: bool,
+                                _STR_FIRST_STROKE: bool,
+                                _STR_MIDDLE_STROKES: bool,
+                                _STR_LAST_STROKE: bool,
+                            },
+                        }
+                    ],
+                },
+                _STR_APPEND_DISAMBIGUATOR_STROKE: {
+                    _STR_ENABLED: bool,
+                    _STR_DISAMBIGUATOR_STROKE: str,
+                },
+            },
+        }
+    )
+
+    def __init__(self, config_file):
+        self._log = logging.getLogger("dictionary_generator")
+        self._vowel_to_possible_strokes = {}
+        self._left_consonant_to_possible_strokes = {}
+        self._right_consonant_to_possible_strokes = {}
+        self._allowed_first_consonants = []
+        self._consonants_allowed_after = {}
+        self._postprocessing_settings = {}
+
+        try:
+            with open(config_file, "r", encoding="UTF-8") as file:
+                self._config = yaml.safe_load(file)
+                Config.CONFIG_SCHEMA.validate(self._config)
+        except yaml.YAMLError as err:
+            raise InvalidConfigError(f"Invalid YAML in {config_file}: {err}") from err
+        except schema.SchemaError as err:
+            raise InvalidConfigError(
+                f"{config_file} does not conform to the schema: {err}"
+            ) from err
+
+        self._process_config()
+
+    def _process_config(self):
+        self._process_vowels_mapping()
+        self._process_consonants_mapping()
+        self._process_phonology_rules()
+        self._process_postprocessing_settings()
+
+    def _process_vowels_mapping(self):
+        self._vowel_to_possible_strokes = self._process_phoneme_mapping(_STR_VOWELS, _STR_KEYS)
+
+    def _process_consonants_mapping(self):
+        self._left_consonant_to_possible_strokes = self._process_phoneme_mapping(
+            _STR_CONSONANTS, _STR_KEYS_LEFT
+        )
+        self._right_consonant_to_possible_strokes = self._process_phoneme_mapping(
+            _STR_CONSONANTS, _STR_KEYS_RIGHT
+        )
+
+    def _process_phonology_rules(self):
+        """Extract the phonology rules from the config.
+
+        This should only be called after _process_consonants_mapping() has
+        already finished.
+
+        This sets self._allowed_first_consonants to a list of all phonemes that
+        are allowed immediately before a vowel. Each phoneme should be
+        represented as a string giving the pronunciation in IPA.
+
+        It also sets self._consonants_allowed_after to a dictionary specifying
+        which consonant phonemes can follow a given consonant phoneme. The key
+        is a phoneme, and the value is a list of phonemes that can follow it.
+        Each phoneme should be a string giving the pronunciation in IPA.
+
+        Raises:
+            InvalidConfigError: If any phoneme specified in the rules is not
+            specified in the `consonants` section of the config.
+        """
+
+        self._allowed_first_consonants = []
+        self._consonants_allowed_after = {}
+
+        phonology_section = self._config[_STR_PHONOLOGY]
+
+        for item in phonology_section:
+            rules = item[_STR_ALLOWED]
+
+            allowed_first = rules[_STR_IMMEDIATELY_BEFORE_VOWEL]
+            for consonant in allowed_first:
+                if consonant not in self._left_consonant_to_possible_strokes:
+                    raise InvalidConfigError(
+                        f"Element {consonant} is in `phonology` but not in `consonants`"
+                    )
+
+            self._allowed_first_consonants += allowed_first
+
+            for prev_and_next in rules[_STR_PREV_AND_NEXT]:
+                prev_consonant_list = prev_and_next[_STR_PREV]
+                next_consonant_list = prev_and_next[_STR_NEXT]
+
+                for consonant in prev_consonant_list + next_consonant_list:
+                    if consonant not in self._left_consonant_to_possible_strokes:
+                        raise InvalidConfigError(
+                            f"Element {consonant} is in `phonology` but not in `consonants`"
+                        )
+
+                for prev_consonant in prev_consonant_list:
+                    old_or_empty = self._consonants_allowed_after.get(prev_consonant, [])
+                    new_value = old_or_empty + next_consonant_list
+                    self._consonants_allowed_after[prev_consonant] = new_value
+
+    def _process_postprocessing_settings(self):
+        self._postprocessing_settings = self._config[_STR_POSTPROCESSING]
+
+    def _process_phoneme_mapping(self, phonemes_category, keys_list_name):
+        """Extract phonemes and possible strokes to steno them from a section.
+
+        Args:
+            phonemes_category: A string specifying which section of the config
+                file to process.
+            keys_list_name: A string specifying the key in the config file
+                where the value is a list of strings specifying all the
+                possible strokes to make the corresponding phoneme.
+        """
+
+        phoneme_to_possible_strokes = {}
+        phonemes_section = self._config[phonemes_category]
+
+        for entry in phonemes_section:
+            phoneme = entry[_STR_PHONEME]
+            strokes_as_strings = entry[keys_list_name]
+
+            if strokes_as_strings == NO_STENO_MAPPING:
+                self._log.debug(
+                    "No mapping for phoneme `%s` in %s in %s",
+                    phoneme,
+                    phonemes_category,
+                    keys_list_name,
+                )
+                phoneme_to_possible_strokes[phoneme] = []
+                continue
+
+            strokes = []
+            for stroke_string in strokes_as_strings:
+                self._log.debug(
+                    "got stroke `%s` for `%s` in `%s`", stroke_string, phoneme, phonemes_category
+                )
+                strokes.append(steno.Stroke.from_string(stroke_string))
+
+            phoneme_to_possible_strokes[phoneme] = strokes
+
+        return phoneme_to_possible_strokes
+
+    def get_vowels(self):
+        """Return the vowels specified in the config.
+
+        Returns:
+            List of strings. Each is a IPA representation of a vowel sound.
+        """
+
+        return self._vowel_to_possible_strokes.keys()
+
+    def get_consonants(self):
+        """Return the consonants specified in the config.
+
+        Returns:
+            List of strings. Each is a IPA representation of a consonant sound.
+        """
+
+        return self._left_consonant_to_possible_strokes.keys()
+
+    def possible_strokes_for_left_consonant(self, phoneme):
+        """Return how to stroke a certain consonant with left consonants.
+
+        Returns:
+            List of Strokes. Each stroke is a way to acheive the given phoneme.
+        """
+
+        return self._left_consonant_to_possible_strokes.get(phoneme, [])
+
+    def possible_strokes_for_vowel(self, phoneme):
+        """Return how to stroke a certain vowel.
+
+        Returns:
+            List of Strokes. Each stroke is a way to acheive the given phoneme.
+        """
+
+        return self._vowel_to_possible_strokes.get(phoneme, [])
+
+    def possible_strokes_for_right_consonant(self, phoneme):
+        """Return how to stroke a certain consonant with right consonant.
+
+        Returns:
+            List of Strokes. Each stroke is a way to acheive the given phoneme.
+        """
+
+        return self._right_consonant_to_possible_strokes.get(phoneme, [])
+
+    def can_prepend_to_onset(self, phoneme, following_phoneme):
+        """Determine if combining the phonemes conforms to the phonology rules.
+
+        Returns:
+            True if `phoneme + following_phoneme` conforms to the specified
+            phonology rules.
+        """
+
+        if phoneme not in self._left_consonant_to_possible_strokes:
+            self._log.error("Unknown consonant phoneme `%s`", phoneme)
+            return False
+
+        if following_phoneme is None:
+            # This phoneme would be the one right before the vowel.
+            return phoneme in self._allowed_first_consonants
+
+        return following_phoneme in self._consonants_allowed_after.get(phoneme, [])
+
+    def should_disallow_f_for_final_s_sound(self):
+        """Return True if this postprocessing setting is enabled."""
+
+        return self._postprocessing_settings[_STR_DISALLOW_F_FOR_FINAL_S][_STR_ENABLED]
+
+    def postprocess_stroke_sequence(self, stroke_sequence):
+        """Update a StrokeSequence using rules from the config.
+
+        Args:
+            stroke_sequence: The StrokeSequence to run postprocessing on.
+
+        Returns:
+            A list of StrokeSequences.
+        """
+
+        new_stroke_sequences = [stroke_sequence]
+
+        new_lst = []
+        for sequence in new_stroke_sequences:
+            new_lst += self._run_stroke_folding_rules(sequence)
+        new_stroke_sequences = new_lst
+
+        new_lst = []
+        for sequence in new_stroke_sequences:
+            new_lst += self._run_vowel_dropping_rules(sequence)
+        new_stroke_sequences = new_lst
+
+        return new_stroke_sequences
+
+    def _run_stroke_folding_rules(self, stroke_sequence):
+        """Perform stroke folding postprocessing.
+
+        Args:
+            stroke_sequence: The StrokeSequence to apply the folding rules to.
+
+        Raises:
+            InvalidConfigError: If the the specified stroke to fold into is not
+                _STR_NEXT_STROKE or _STR_PREVIOUS_STROKE
+            OutOfStenoOrderError: If the keys specified to fold into an adjacent
+                stroke are out of steno order.
+            MissingDashInStrokeError: If the keys specified to fold into an
+                adjacent stroke have no middle keys (vowels, a star, or dash).
+
+        Returns:
+            A list of StrokeSequences.
+        """
+        new_stroke_sequences = [stroke_sequence]
+        fold_strokes = self._config.get(_STR_POSTPROCESSING, {}).get(_STR_FOLD_STROKES, {})
+
+        if not fold_strokes.get(_STR_ENABLED, False):
+            return new_stroke_sequences
+
+        list_of_stroke_lists = [copy.deepcopy(stroke_sequence.get_strokes())]
+
+        for rule in fold_strokes.get(_STR_RULES, []):
+            if not rule[_STR_ENABLED]:
+                continue
+
+            length = len(list_of_stroke_lists)  # We may append to the list.
+            for i in range(length):
+                strokes = copy.deepcopy(list_of_stroke_lists[i])
+                made_changes = False
+
+                new_strokes = copy.deepcopy(strokes)
+                for k, stroke in enumerate(strokes):
+                    if not Config._stroke_folding_enabled_for_stroke(
+                        strokes, k, rule[_STR_FOLD_INTO]
+                    ):
+                        continue
+
+                    if Config._stroke_folding_rule_applies(rule, stroke):
+                        fold_into = rule[_STR_FOLD_INTO]
+                        if fold_into == _STR_NEXT_STROKE:
+                            new_strokes[k + 1].add_keys_ignore_steno_order(
+                                steno.Stroke.from_string(rule[_STR_KEYS_TO_FOLD_IN]).get_keys()
+                            )
+                        elif fold_into == _STR_PREVIOUS_STROKE:
+                            new_strokes[k - 1].add_keys_ignore_steno_order(
+                                steno.Stroke.from_string(rule[_STR_KEYS_TO_FOLD_IN]).get_keys()
+                            )
+                        else:
+                            raise InvalidConfigError("Unknown fold_into value `{fold_into}`")
+
+                        new_strokes = new_strokes[:k] + new_strokes[k + 1 :]
+                        made_changes = True
+
+                if made_changes:
+                    if rule[_STR_KEEP_ORIGINAL]:
+                        list_of_stroke_lists.append(new_strokes)
+                    else:
+                        list_of_stroke_lists[i] = new_strokes
+
+        new_stroke_sequences = []
+        for strokes in list_of_stroke_lists:
+            new_stroke_sequences.append(steno.StrokeSequence(strokes))
+
+        return new_stroke_sequences
+
+    def _run_vowel_dropping_rules(self, stroke_sequence):
+        """Perform vowel-dropping postprocessing.
+
+        Args:
+            stroke_sequence: The StrokeSequence to apply the vowel-dropping
+            rules to.
+
+        Raises:
+            OutOfStenoOrderError: If the keys specified in the rule as vowel
+                clusters to drop are out of steno order.
+            MissingDashInStrokeError: If the keys specified in the rule as vowel
+                clusters to drop have no middle keys (vowels, a star, or dash).
+                This should never occur because the keys in the vowel cluster
+                should be vowels.
+
+        Returns:
+            A list of StrokeSequences.
+        """
+
+        new_stroke_sequences = [stroke_sequence]
+        vowel_dropping = self._config.get(_STR_POSTPROCESSING, {}).get(_STR_VOWEL_DROPPING, {})
+
+        if not vowel_dropping.get(_STR_ENABLED, False):
+            return new_stroke_sequences
+
+        list_of_stroke_lists = [copy.deepcopy(stroke_sequence.get_strokes())]
+
+        for rule in vowel_dropping.get(_STR_RULES, []):
+            if not rule[_STR_ENABLED]:
+                continue
+
+            length = len(list_of_stroke_lists)  # We may append to the list.
+            for i in range(length):
+                strokes = copy.deepcopy(list_of_stroke_lists[i])
+                made_changes = False
+
+                for k, stroke in enumerate(strokes):
+                    if not Config._vowel_dropping_enabled_for_stroke(
+                        strokes, k, rule[_STR_ENABLED_FOR]
+                    ):
+                        continue
+
+                    if Config._vowel_dropping_rule_applies(rule, stroke):
+                        stroke.clear_all_vowels()
+                        made_changes = True
+
+                if made_changes:
+                    if rule[_STR_KEEP_ORIGINAL]:
+                        list_of_stroke_lists.append(strokes)
+                    else:
+                        list_of_stroke_lists[i] = strokes
+
+        new_stroke_sequences = []
+        for strokes in list_of_stroke_lists:
+            new_stroke_sequences.append(steno.StrokeSequence(strokes))
+
+        return new_stroke_sequences
+
+    @staticmethod
+    def _stroke_folding_enabled_for_stroke(strokes, index, fold_into):
+        if fold_into == _STR_NEXT_STROKE:
+            return index < len(strokes) - 1
+
+        if fold_into == _STR_PREVIOUS_STROKE:
+            return index > 0
+
+        raise InvalidConfigError("Unknown fold_into value `{fold_into}`")
+
+    @staticmethod
+    def _vowel_dropping_enabled_for_stroke(strokes, index, enabled_for):
+        if index < 0 or index >= len(strokes):
+            return False
+
+        if len(strokes) == 1:
+            return enabled_for[_STR_SINGLE_STROKES] and index == 0
+
+        if index == 0:
+            return enabled_for[_STR_FIRST_STROKE]
+
+        if index == len(strokes) - 1:
+            return enabled_for[_STR_LAST_STROKE]
+
+        return enabled_for[_STR_MIDDLE_STROKES]
+
+    @staticmethod
+    def _stroke_folding_rule_applies(rule, stroke):
+        """Check if the stroke-folding rule applies to this stroke.
+
+        This function does not check if the rule is enabled.
+
+        Args:
+            rule: A dictionary specifying the stroke-folding rule.
+            stroke: The stroke that this rule would be applied to.
+
+        Raises:
+            OutOfStenoOrderError: If the keys specified in the rule as strokes
+                to fold are out of steno order.
+            MissingDashInStrokeError: If the keys specified in the rule as
+                strokes to fold have not middle keys (vowels, a star, or dash).
+
+        Return:
+            True if the stroke matches one of the strokes specified in the rule
+            as a stroke to fold into an adjacent stroke.
+        """
+
+        for stroke_string in rule[_STR_STROKES_TO_FOLD]:
+            if stroke == steno.Stroke.from_string(stroke_string):
+                return True
+
         return False
 
-    # Almost any initial sound is allowed.
-    if onset == []:
-        return phoneme not in ["ŋ", "ŋk", "mp", "ntʃ"]
+    @staticmethod
+    def _vowel_dropping_rule_applies(rule, stroke):
+        """Check if the vowel dropping rule applies to this stroke.
 
-    prev = onset[0]
+        This function does not check if the rule is enabled.
 
-    ####################### Custom Rules #######################
-    if phoneme == "st" and prev in ["ɹ", "w"]:
-        return True
+        Args:
+            rule: A dictionary specifying the vowel dropping rule.
+            stroke: The stroke that this rule would be applied to.
 
-    if phoneme == "ŋk":
+        Raises:
+            OutOfStenoOrderError: If the keys specified in the rule as vowel
+                clusters to drop are out of steno order.
+            MissingDashInStrokeError: If the keys specified in the rule as vowel
+                clusters to drop have no middle keys (vowels, a star, or dash).
+                This should never occur because the keys in the vowel cluster
+                should be vowels.
+
+        Return:
+            True if the stroke contains one of the vowel clusters specified in
+            the rule.
+        """
+
+        # Check the left consonants condition.
+        left_consonants_rule = rule[_STR_LEFT_CONSONANTS]
+        if left_consonants_rule == _STR_ANY_SET_OF_KEYS:
+            # Do nothing.
+            pass
+        elif left_consonants_rule == _STR_ANY_NON_EMPTY_SET_OF_KEYS:
+            if not stroke.has_left_consonant():
+                return False
+        elif not stroke.left_consonants_match(steno.Stroke.from_string(left_consonants_rule)):
+            return False
+
+        # Check the right consonants condition.
+        right_consonants_rule = rule[_STR_RIGHT_CONSONANTS]
+        if right_consonants_rule == _STR_ANY_SET_OF_KEYS:
+            # Do nothing.
+            pass
+        elif right_consonants_rule == _STR_ANY_NON_EMPTY_SET_OF_KEYS:
+            if not stroke.has_right_consonant():
+                return False
+        elif not stroke.right_consonants_match(steno.Stroke.from_string(right_consonants_rule)):
+            return False
+
+        # Check if the vowels are in one of the specified clusters.
+        for vowel_cluster in rule[_STR_VOWEL_CLUSTERS_TO_DROP]:
+            if stroke.vowels_match(steno.Stroke.from_string(vowel_cluster)):
+                return True
+
         return False
 
-    if phoneme == "mp":
-        return False
+    def should_append_disambiguator_stroke(self):
+        """Return True if this postprocessing setting is enabled."""
 
-    if phoneme == "ntʃ":
-        return False
+        return self._postprocessing_settings[_STR_APPEND_DISAMBIGUATOR_STROKE][_STR_ENABLED]
 
-    ####################### English Rules ######################
-    # All following rules are from https://en.wikipedia.org/wiki/English_phonology
-    # English syllable structure is (C)^{3}V(C)^{5}, so no more than three
-    # consonant sounds in the onset.
-    if len(onset) >= 3:
-        return False
+    def get_disambiguator_stroke(self):
+        """Return the disambiguator stroke specified in postprocessing settings.
 
-    # Allow stop plus approximant other than 'j'.
-    if (
-        (prev == "ɫ" and phoneme in ["p", "b", "k", "ɡ"])
-        or (prev == "ɹ" and phoneme in ["p", "b", "t", "d", "k", "ɡ"])
-        or (prev == "w" and phoneme in ["p", "t", "d", "g", "k"])
-    ):
-        return True
+        This should only be needed when should_append_disambiguator_stroke()
+        returns True.
 
-    # Allow voicless fricative or 'v' plus approximant other than 'j'.
-    if (
-        (prev == "ɫ" and phoneme in ["f", "s", "θ", "ʃ"])
-        or (prev == "ɹ" and phoneme in ["f", "θ", "ʃ"])
-        or (prev == "w" and phoneme in ["h", "s", "θ", "v"])
-    ):
-        return True
+        Returns:
+            None if should_append_disambiguator_stroke() returns False,
+            otherwise it returns a Stroke that should be appended to a
+            StrokeSequence if that StrokeSequence collided with another for a
+            different word.
+        """
 
-    # Allow consonants other than 'ɹ' and 'w' followed by 'j' (which should
-    # be followed by some form of 'u').
-    if len(onset) == 1 and prev == "j" and phoneme not in ["ɹ", "w"]:
-        return True
-
-    # Allow 's' plus voiceless stop:
-    if phoneme == "s" and prev in ["p", "t", "k"]:
-        return True
-
-    # Allow 's' plus nasal other than 'ŋ'.
-    if phoneme == "s" and prev in ["m", "n"]:
-        return True
-
-    # Allow 's' plus voiceless non-sibilant fricative:
-    if phoneme == "s" and prev in ["f", "θ"]:
-        return True
-
-    return False
-
-
-def postprocess_steno_sequence(stroke_sequence, syllables_ipa):
-    """Make custom modifications to a generated stroke sequence.
-
-    Args:
-        stroke_sequence: A StrokeSequence.
-        syllables_ipa: A list of Syllables, giving the pronunciation for the
-            translated word via IPA. See syllable.py for more info on a
-            Syllable.
-
-    Returns:
-        The updated StrokeSequence to use. This should be the input
-        `stroke_sequence` if no modifications are desired for this sequence.
-    """
-
-    new_strokes = stroke_sequence.get_strokes().copy()
-
-    # If a stroke after the first has 'U', 'EU', or 'E' as its vowel and it has
-    # following consonants, replace the vowel cluster with '-' (or '*' if the
-    # stroke is starred).
-    for stroke in new_strokes[1:]:
-        active_vowels = stroke.get_vowels()
-        last_key = stroke.get_last_key()
-
-        if active_vowels in [[Key.E], [Key.E, Key.U], [Key.U]] and (
-            last_key is not None and last_key.index > Key.U.index
-        ):
-            stroke.clear_all_vowels()
-
-    # If the final sound in a syllable is an 's', it should be with the 'S' key
-    # not the 'F' key, even though making 's' with 'F' is allowed if there's
-    # another sound later in the syllable.
-    for stroke, ipa in zip(new_strokes, syllables_ipa):
-        if stroke.get_last_key() == Key.RF and len(ipa.coda) > 0 and ipa.coda[-1] == "s":
-            # This is invalid.
+        if not self.should_append_disambiguator_stroke():
             return None
 
-    # If the final stroke is 'SH-PB', fold it into the previous stroke as '-GS'.
-    shun_stroke = steno.Stroke([Key.LS, Key.LH, Key.RP, Key.RB])
-    if len(new_strokes) > 1 and new_strokes[-1] == shun_stroke:
-        prev_stroke = new_strokes[-2]
-        prev_stroke_keys = prev_stroke.get_keys()
-
-        if (
-            len(prev_stroke_keys) > 0
-            and prev_stroke_keys[-1] not in [Key.RT, Key.RD, Key.RZ]
-            and (Key.RG not in prev_stroke_keys or Key.RS not in prev_stroke_keys)
-        ):
-            prev_stroke.add_keys_maintain_steno_order([Key.RG, Key.RS])
-
-            # Now actually replace the strokes.
-            new_strokes = new_strokes[:-1]
-
-    # If a stroke other than the last one in a multistroke entry conssists
-    # entirely of 'TK' plus either 'AOE', 'E', 'EU', or 'U', then remvoe the
-    # vowels. This is becuase such words (such as 'develop') can often be
-    # pronunced in several of these ways.
-    for stroke in new_strokes[:-1]:
-        stroke_str = str(stroke)
-        if (
-            len(stroke_str) > 2
-            and stroke_str[:2] == "TK"
-            and stroke_str[2:] in ["AOE", "E", "EU", "U"]
-        ):
-            stroke.clear_all_vowels()
-
-    return steno.StrokeSequence(new_strokes)
-
-
-# Perform custom postprocessing after the entire dictionary's been generated.
-def postprocess_generated_dictionary(word_and_translations):
-    """Make custom modifications to the generated steno dictionary.
-
-    This can be used to resolve homophone conflicts for example, by looping
-    through all entries and checking if the the stroke sequence for the
-    current word is already taken and if so, appending some distinguishing
-    stroke to make it unique.
-
-    Args:
-        word_and_definitions: A list of tuples where the first item in each
-            tuple is the word to translate into steno and the second item in
-            the tuple is a StrokeSequences, with each StrokeSequence being a way
-            to write the word in steno.
-
-    Returns:
-        An updated version of the input after applying any modifications to the
-        each StrokeSequence.
-    """
-
-    # If a desired definition is already taken, append a 'W-B' stroke until
-    # it's unique.
-    used_translation_strs = set()
-    disambiguator_stroke = steno.Stroke([Key.LW, Key.RB])
-
-    for _, translations in word_and_translations:
-        for translation in translations:
-            while str(translation) in used_translation_strs:
-                translation.append_stroke(disambiguator_stroke)
-
-            used_translation_strs.add(str(translation))
-
-    return word_and_translations
+        return steno.Stroke.from_string(
+            self._postprocessing_settings[_STR_APPEND_DISAMBIGUATOR_STROKE][
+                _STR_DISAMBIGUATOR_STROKE
+            ]
+        )
