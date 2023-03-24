@@ -1,7 +1,9 @@
 """Configuration for the steno dictionary generator."""
 
 import logging
-import re
+
+import steno
+from steno import Key
 
 
 STENO_ORDER = "STKPWHRAOEUFRPBLGTSDZ"  # Excludes the '*'.
@@ -80,39 +82,38 @@ STRESS_MARKERS = ["ˈ", "ˌ"]
 #
 # Each vowel in VOWELS must have an entry here.
 #
-# If there are multiple ways to write the sound, the value should be a list of
-# strings with each string being a way to write it.
-#
-# If the sound should be stenoed with the star key, add a "*" character
-# anywhere in the string.
+# The value of each entry should be a list of ways to translate the phoneme to
+# steno; each way to translate it should itself be a list specifying the keys to
+# press and those keys should be in steno order. If the sound should be stenoed
+# with the star key, add Key.STAR anywhere in the inner list.
 VOWEL_TO_STENO = {
     ############ American English Vowels ############
-    "ɪ": "EU",
-    "ɛ": "E",
-    "æ": "A",
-    "ə": "U",
-    "ʊ": "AO",
-    "i": "AOE",
-    "ɔ": "AU",
-    "u": "AOU",  # Note: this is the same as for 'ju'.
-    "ɝ": "UR",
-    "ɑ": "O",
-    "aɪ": "AOEU",
-    "eɪ": "AEU",
-    "ɔɪ": "OEU",
-    "aʊ": "OU",
-    "oʊ": "OE",
-    "ɪɹ": "AOER",
-    "ɛɹ": "AEUR",
-    "ɔɹ": "OR",
-    "ʊɹ": "AOUR",
-    "ɑɹ": "AR",
+    "ɪ": [[Key.E, Key.U]],
+    "ɛ": [[Key.E]],
+    "æ": [[Key.A]],
+    "ə": [[Key.U]],
+    "ʊ": [[Key.A, Key.O]],
+    "i": [[Key.A, Key.O, Key.E]],
+    "ɔ": [[Key.A, Key.U]],
+    "u": [[Key.A, Key.O, Key.U]],  # Note: this is the same as for 'ju'.
+    "ɝ": [[Key.U, Key.RR]],
+    "ɑ": [[Key.O]],
+    "aɪ": [[Key.A, Key.O, Key.E, Key.U]],
+    "eɪ": [[Key.A, Key.E, Key.U]],
+    "ɔɪ": [[Key.O, Key.E, Key.U]],
+    "aʊ": [[Key.O, Key.U]],
+    "oʊ": [[Key.O, Key.E]],
+    "ɪɹ": [[Key.A, Key.O, Key.E, Key.RR]],
+    "ɛɹ": [[Key.A, Key.E, Key.U, Key.RR]],
+    "ɔɹ": [[Key.O, Key.RR]],
+    "ʊɹ": [[Key.A, Key.O, Key.U, Key.RR]],
+    "ɑɹ": [[Key.A, Key.RR]],
     ############ Extra Vowel Clusters ############
-    "ju": "AOU",  # Note: this is the same as for just 'u'.
-    "jə": "AOU",
-    "ɝtʃ": "UFRPB",
-    "ɑɹtʃ": "AFRPB",
-    "ɔɹtʃ": "OFRPB",
+    "ju": [[Key.A, Key.O, Key.U]],  # Note: this is the same as for just 'u'.
+    "jə": [[Key.A, Key.O, Key.U]],
+    "ɝtʃ": [[Key.U, Key.RF, Key.RR, Key.RP, Key.RB]],
+    "ɑɹtʃ": [[Key.A, Key.RF, Key.RR, Key.RP, Key.RB]],
+    "ɔɹtʃ": [[Key.O, Key.RF, Key.RR, Key.RP, Key.RB]],
 }
 
 # Specify how each consonant in CONSONANTS should be translated to steno using
@@ -121,37 +122,36 @@ VOWEL_TO_STENO = {
 # Each consonant in CONSONANTS must have an entry here; if it's not a valid
 # left-side consonant sound its value should be NO_STENO_MAPPING.
 #
-# If there are multiple ways to write the sound with left-side consonants, the
-# value should be a list of strings with each string being a way to write it.
-#
-# If the sound should be stenoed with the star key, add a "*" character
-# anywhere in the string.
+# The value of each entry should be a list of ways to translate the phoneme to
+# steno; each way to translate it should itself be a list specifying the keys to
+# press and those keys should be in steno order. If the sound should be stenoed
+# with the star key, add Key.STAR anywhere in the inner list.
 LEFT_CONSONANT_TO_STENO = {
-    "b": "PW",
-    "d": "TK",
-    "f": "TP",
-    "h": "H",
-    "j": "KWR",
-    "k": "K",
-    "m": "PH",
-    "n": "TPH",
-    "p": "P",
-    "s": "S",
-    "t": "T",
-    "v": "SR",
-    "w": "W",
-    "z": "SWR",
-    "ð": "TH",
+    "b": [[Key.LP, Key.LW]],
+    "d": [[Key.LT, Key.LK]],
+    "f": [[Key.LT, Key.LP]],
+    "h": [[Key.LH]],
+    "j": [[Key.LK, Key.LW, Key.LR]],
+    "k": [[Key.LK]],
+    "m": [[Key.LP, Key.LH]],
+    "n": [[Key.LT, Key.LP, Key.LH]],
+    "p": [[Key.LP]],
+    "s": [[Key.LS]],
+    "t": [[Key.LT]],
+    "v": [[Key.LS, Key.LR]],
+    "w": [[Key.LW]],
+    "z": [[Key.LS, Key.LW, Key.LR]],
+    "ð": [[Key.LT, Key.LH]],
     "ŋ": NO_STENO_MAPPING,
-    "ɡ": "TKPW",
-    "ɫ": "HR",
-    "ɹ": "R",
-    "ʃ": "SH",
-    "ʒ": "SKH",
-    "θ": "TH",
-    "tʃ": "KH",
-    "dʒ": "SKWR",
-    "st": "ST",
+    "ɡ": [[Key.LT, Key.LK, Key.LP, Key.LW]],
+    "ɫ": [[Key.LH, Key.LR]],
+    "ɹ": [[Key.LR]],
+    "ʃ": [[Key.LS, Key.LH]],
+    "ʒ": [[Key.LS, Key.LK, Key.LH]],
+    "θ": [[Key.LT, Key.LH]],
+    "tʃ": [[Key.LK, Key.LH]],
+    "dʒ": [[Key.LS, Key.LK, Key.LW, Key.LR]],
+    "st": [[Key.LS, Key.LT]],
     "ŋk": NO_STENO_MAPPING,
     "mp": NO_STENO_MAPPING,
     "ntʃ": NO_STENO_MAPPING,
@@ -163,40 +163,39 @@ LEFT_CONSONANT_TO_STENO = {
 # Each consonant in CONSONANTS must have an entry here; if it's not a valid
 # right-side consonant sound its value should be NO_STENO_MAPPING.
 #
-# If there are multiple ways to write the sound with right-side consonants, the
-# value should be a list of strings with each string being a way to write it.
-#
-# If the sound should be stenoed with the star key, add a "*" character
-# anywhere in the string.
+# The value of each entry should be a list of ways to translate the phoneme to
+# steno; each way to translate it should itself be a list specifying the keys to
+# press and those keys should be in steno order. If the sound should be stenoed
+# with the star key, add Key.STAR anywhere in the inner list.
 RIGHT_CONSONANT_TO_STENO = {
-    "b": "B",
-    "d": "D",
-    "f": "F",
+    "b": [[Key.RB]],
+    "d": [[Key.RD]],
+    "f": [[Key.RF]],
     "h": NO_STENO_MAPPING,
     "j": NO_STENO_MAPPING,
-    "k": "BG",
-    "m": "PL",
-    "n": "PB",
-    "p": "P",
-    "s": ["S", "F"],
-    "t": "T",
-    "v": "FB",
+    "k": [[Key.RB, Key.RG]],
+    "m": [[Key.RP, Key.RL]],
+    "n": [[Key.RP, Key.RB]],
+    "p": [[Key.RP]],
+    "s": [[Key.RS], [Key.RF]],
+    "t": [[Key.RT]],
+    "v": [[Key.RF, Key.RB]],
     "w": NO_STENO_MAPPING,
-    "z": "Z",
-    "ð": "*T",
-    "ŋ": "PBG",
-    "ɡ": "G",
-    "ɫ": "L",
-    "ɹ": "R",
-    "ʃ": "RB",
+    "z": [[Key.RZ]],
+    "ð": [[Key.STAR, Key.RT]],
+    "ŋ": [[Key.RP, Key.RB, Key.RG]],
+    "ɡ": [[Key.RG]],
+    "ɫ": [[Key.RL]],
+    "ɹ": [[Key.RR]],
+    "ʃ": [[Key.RR, Key.RB]],
     "ʒ": NO_STENO_MAPPING,
-    "θ": "*T",
-    "tʃ": "FP",
-    "dʒ": "PBLG",
-    "st": ["FT", "*S"],
-    "ŋk": "PBG",  # Note: this colides with 'ŋ'.
-    "mp": "*PL",
-    "ntʃ": "FRPB",
+    "θ": [[Key.STAR, Key.RT]],
+    "tʃ": [[Key.RF, Key.RP]],
+    "dʒ": [[Key.RP, Key.RB, Key.RL, Key.RG]],
+    "st": [[Key.RF, Key.RT], [Key.STAR, Key.RS]],
+    "ŋk": [[Key.RP, Key.RB, Key.RG]],  # Note: this colides with 'ŋ'.
+    "mp": [[Key.STAR, Key.RP, Key.RL]],
+    "ntʃ": [[Key.RF, Key.RR, Key.RP, Key.RB]],
 }
 
 
@@ -277,79 +276,76 @@ def can_prepend_to_onset(phoneme, onset):
     return False
 
 
-def postprocess_steno_sequence(steno_sequence, syllables_ipa):
+def postprocess_steno_sequence(stroke_sequence, syllables_ipa):
     """Make custom modifications to a generated stroke sequence.
 
     Args:
-        steno_sequence: a string specifying the generated steno strokes. Each
-            stroke is separated by a forward slash.
+        stroke_sequence: A StrokeSequence.
         syllables_ipa: A list of Syllables, giving the pronunciation for the
             translated word via IPA. See syllable.py for more info on a
             Syllable.
 
     Returns:
-        A string that is the stroke sequence after applying any modifications.
-        This should be the input `steno_sequence` if no modifications are
-        desired for this sequence.
+        The updated StrokeSequence to use. This should be the input
+        `stroke_sequence` if no modifications are desired for this sequence.
     """
 
-    syllables_steno = steno_sequence.split("/")
-    new_syllables_steno = syllables_steno.copy()
+    new_strokes = stroke_sequence.get_strokes().copy()
 
     # If a stroke after the first has 'U', 'EU', or 'E' as its vowel and it has
     # following consonants, replace the vowel cluster with '-' (or '*' if the
     # stroke is starred).
-    for i in range(1, len(syllables_steno)):
-        pattern = "([STKPWHR]*)([AO]*)([*]?)([EU]*)([FRPBLGTSDZ]*)"
-        match = re.match(pattern, syllables_steno[i])
+    for stroke in new_strokes[1:]:
+        active_vowels = stroke.get_vowels()
+        last_key = stroke.get_last_key()
 
-        if match:
-            (left, a_and_o, star, e_and_u, right) = match.groups()
-
-        if a_and_o == "" and len(e_and_u) != 0 and right != "":
-            # Remove the vowels.
-            middle = "*" if star == "*" else "-"
-            new_syllables_steno[i] = left + middle + right
+        if active_vowels in [[Key.E], [Key.E, Key.U], [Key.U]] and (
+            last_key is not None and last_key.index > Key.U.index
+        ):
+            stroke.clear_all_vowels()
 
     # If the final sound in a syllable is an 's', it should be with the 'S' key
     # not the 'F' key, even though making 's' with 'F' is allowed if there's
     # another sound later in the syllable.
-    for steno, ipa in zip(new_syllables_steno, syllables_ipa):
-        if steno[-1] == "F" and len(ipa.coda) > 0 and ipa.coda[-1] == "s":
+    for stroke, ipa in zip(new_strokes, syllables_ipa):
+        if stroke.get_last_key() == Key.RF and len(ipa.coda) > 0 and ipa.coda[-1] == "s":
             # This is invalid.
             return None
 
     # If the final stroke is 'SH-PB', fold it into the previous stroke as '-GS'.
-    if len(new_syllables_steno) > 1 and new_syllables_steno[-1] == "SH-PB":
-        prev = new_syllables_steno[-2]
-        if prev[-1] not in ["T", "D", "Z"] and "GS" not in prev:
-            # We can fold it in; just make sure not to repeat a key.
-            if prev[-1] == "G":
-                prev += "S"
-            elif prev[-1] == "S":
-                # We already know there's not a right-side 'T' or 'G', so we
-                # can put a 'G' immediately before the 'S'.
-                prev = prev[:-1] + "GS"
-            else:
-                prev += "GS"
+    shun_stroke = steno.Stroke([Key.LS, Key.LH, Key.RP, Key.RB])
+    if len(new_strokes) > 1 and new_strokes[-1] == shun_stroke:
+        prev_stroke = new_strokes[-2]
+        prev_stroke_keys = prev_stroke.get_keys()
+
+        if (
+            len(prev_stroke_keys) > 0
+            and prev_stroke_keys[-1] not in [Key.RT, Key.RD, Key.RZ]
+            and (Key.RG not in prev_stroke_keys or Key.RS not in prev_stroke_keys)
+        ):
+            prev_stroke.add_keys_maintain_steno_order([Key.RG, Key.RS])
 
             # Now actually replace the strokes.
-            new_syllables_steno = new_syllables_steno[:-1]
-            new_syllables_steno[-1] = prev
+            new_strokes = new_strokes[:-1]
 
     # If a stroke other than the last one in a multistroke entry conssists
     # entirely of 'TK' plus either 'AOE', 'E', 'EU', or 'U', then remvoe the
     # vowels. This is becuase such words (such as 'develop') can often be
     # pronunced in several of these ways.
-    for i, stroke in enumerate(new_syllables_steno[:-1]):
-        if len(stroke) > 2 and stroke[:2] == "TK" and stroke[2:] in ["AOE", "E", "EU", "U"]:
-            new_syllables_steno[i] = "TK-"
+    for stroke in new_strokes[:-1]:
+        stroke_str = str(stroke)
+        if (
+            len(stroke_str) > 2
+            and stroke_str[:2] == "TK"
+            and stroke_str[2:] in ["AOE", "E", "EU", "U"]
+        ):
+            stroke.clear_all_vowels()
 
-    return "/".join(new_syllables_steno)
+    return steno.StrokeSequence(new_strokes)
 
 
 # Perform custom postprocessing after the entire dictionary's been generated.
-def postprocess_generated_dictionary(word_and_definitions):
+def postprocess_generated_dictionary(word_and_translations):
     """Make custom modifications to the generated steno dictionary.
 
     This can be used to resolve homophone conflicts for example, by looping
@@ -360,25 +356,24 @@ def postprocess_generated_dictionary(word_and_definitions):
     Args:
         word_and_definitions: A list of tuples where the first item in each
             tuple is the word to translate into steno and the second item in
-            the tuple is a list of strings, with each string being a way to
-            write the word in steno.
+            the tuple is a StrokeSequences, with each StrokeSequence being a way
+            to write the word in steno.
 
     Returns:
-        A string that is the stroke sequence after applying any modifications.
-        This should be the input `steno_sequence` if no modifications are
-        desired for this sequence.
+        An updated version of the input after applying any modifications to the
+        each StrokeSequence.
     """
 
     # If a desired definition is already taken, append a 'W-B' stroke until
     # it's unique.
-    used_definitions = set()
+    used_translation_strs = set()
+    disambiguator_stroke = steno.Stroke([Key.LW, Key.RB])
 
-    for _, (_, definitions) in enumerate(word_and_definitions):
-        for k, strokes in enumerate(definitions):
-            while strokes in used_definitions:
-                strokes += "/W-B"
+    for _, translations in word_and_translations:
+        for translation in translations:
+            while str(translation) in used_translation_strs:
+                translation.append_stroke(disambiguator_stroke)
 
-            definitions[k] = strokes
-            used_definitions.add(strokes)
+            used_translation_strs.add(str(translation))
 
-    return word_and_definitions
+    return word_and_translations
