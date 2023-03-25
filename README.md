@@ -6,7 +6,7 @@ Stenography is a fascinating and efficient way of writing, used by court reporte
 
 ## Table of Contents
 
-- [Requirements](#requirements)
+- [Installation and Requirements](#installation-and-requirements)
 - [Generate a Phonetic Dictionary](#generate-a-phonetic-dictionary)
   - [Usage](#usage)
   - [Default Theory](#default-theory)
@@ -22,7 +22,12 @@ Stenography is a fascinating and efficient way of writing, used by court reporte
 
 The code was designed to work with Python3.11. You can download Python from the official [Python webiste](https://www.python.org/downloads/).
 
-To install Steno Tools, run `git clone https://github.com/AndrewHess/steno-tools.git` in your terminal.
+In your terminal, run:
+```
+git clone https://github.com/AndrewHess/steno-tools.git
+cd steno-tools
+pip install -r requirements.txt
+```
 
 ## Generate a Phonetic Dictionary
 
@@ -33,42 +38,70 @@ Steno Tools allows you to generate a phonetic steno dictionary by providing a li
 1. Download a CSV file that maps words to their pronunciation in IPA. A good choice is to go to https://github.com/open-dict-data/ipa-dict/releases/tag/1.0 and download the `csv.zip` file, unzip it, and extract the file for your language (e.g., `en_US.csv` for American English).
 2. Create a file containing the words that you want to include in the generated dictionary. There should be one word per line. A good option is to download the list of most frequently used English words from https://www.kaggle.com/datasets/rtatman/english-word-frequency and then clean it up by removing the comma and number after each word, capitalizing certain words, and anything else you want to do.
 3. In a terminal, go into the `generator` directory of this repository.
-4. Run `python generate_phonetic_dictionary.py /path/to/en_US.csv /path/to/your_word_list`.
+4. In a terminal, run
+```
+python generate_phonetic_dictionary.py /path/to/en_US.csv /path/to/your_word_list --config_file generator/configs/config.yaml
+```
+5. View the generated dictionary in `output.json`.
 
-To see usage options, run `python generate_phonetic_dictionary.py -h`. To write the emitted logs to `logs.txt` rather than standard output, append ` 2> logs.txt` to your command.
+To write the emitted logs to `logs.txt` rather than to the console, append ` 2> logs.txt` to your command.
+
+To see usage options, run `python generate_phonetic_dictionary.py -h`.
 
 ### Default Theory
 
-By default the mapping from phonemes to steno keys largely follows [Plover Theory](https://www.artofchording.com/introduction/theories-and-dictionaries.html#plover-theory). A few exceptions are that left-side `z` is formed by `SWR-` and right-side `v` is `-FB`. For a more complete mapping of phonemes to keys, open `config.py` and look at `VOWELS_TO_STENO`, `LEFT_CONSONANT_TO_STENO`, and `RIGHT_CONSONANT_TO_STENO`. The phonemes in those variables are specified via the [International Phonetic Alphabet](https://en.wikipedia.org/wiki/International_Phonetic_Alphabet) (IPA); if you're not familiar with IPA you can look at the variables `VOWELS` and `CONSONANTS` to see examples of each phoneme.
+By default the mapping from phonemes to steno keys largely follows [Plover Theory](https://www.artofchording.com/introduction/theories-and-dictionaries.html#plover-theory). A few exceptions are that left-side `z` is formed by `SWR-` and right-side `v` is `-FB`. For a more complete mapping of phonemes to keys, open `generator/configs/config.yaml` and look at the `vowels` and `consonants` sections. The phonemes in those sections are specified via the [International Phonetic Alphabet](https://en.wikipedia.org/wiki/International_Phonetic_Alphabet) (IPA). If you're not familiar with IPA you can look at the examples for each phoneme in `config.yaml`.
 
-Additionally, there's some postprocessing that's done by default. This consists of:
-1. For multistroke translations, if the vowel keys for the stroke consist only of `E`, `U`, or `EU` and the stroke is not the first stroke in the sequence, the vowels are removed from the stroke. For example, the generated stroke for `instead` will be `EUPB/ST-D` instead of `EUPB/STED`.
-2. Strokes can use the `-F` for a right-side `s` sound, but if the `s` sound is the last sound in the syllable it must be produced with the `-S` key.
-3. If the final stroke in a multistroke translation is `ʃən` (the `SHUN` sound in `ration`), that stroke is folded into the previous stroke by adding `-GS` to the previous stroke.
-4. If a non-final stroke in a stroke sequence consists entirely of `TK` plus `AOE`, `E`, `EU`, or `U`, the vowels are removed and the stroke becomes `TK-`. This is because those types of strokes can often be pronounced several of those ways (e.g., the first syllable of the word `develop`) and removing the vowels doesn't seem to add many conflicts.
+After strokes are generated phonetically, there some postprocessing that's done by default before writting the final dictionary. You can disable this postprocessing or specify your own rules in the `postprocessing` section. The default postprocessing consists of:
+1. Strokes can use the `-F` for a right-side `s` sound, but if the `s` sound is the last sound in the syllable it must be produced with the `-S` key.
+2. For multistroke translations, if the vowel keys for the stroke consist only of `E`, `U`, or `EU` and the stroke is not the first stroke in the sequence, the vowels are removed from the stroke. For example, the generated stroke for `instead` will be `EUPB/ST-D` instead of `EUPB/STED`.
+3. If the final stroke in a multistroke translation is `SHUPB` (the `SHUN` sound in `ration`), that stroke is folded into the previous stroke by adding `-GS` to the previous stroke.
+4. If a non-final stroke in a stroke sequence consists entirely of `TK-` plus `AOE`, `E`, `EU`, or `U`, the vowels are removed and the stroke becomes `TK-`. This is because those types of strokes can often be pronounced several of those ways (e.g., the first syllable of the word `develop`) and removing the vowels doesn't seem to add many conflicts.
 5. If a stroke sequence for one word is already used for a different word, the stroke `W-B` is repeatedly appended to the sequence until the sequence is unique.
 
 ### Customizing the Default Theory
 
-You can customize how words are mapped to strokes by modifying `generator/config.py`. You shouldn't need to change any other file for any reason[^1].
+The file `generator/configs/config.yaml` specifies how strokes are generated for words. You can update this file to customize the generated theory in almost any way.
+
+If you want to make a customization that's not covered in the following subsections, you'll have to make changes to the Python files. In that case, please consider making a pull request with the changes, or ask for the feature by raising a GitHub Issue so that more people can benefit from the desired feature.
 
 #### Customizing Phonemes
 
-The generator requires generated strokes to be in steno order. So in addition to the phonemes your language uses, you may want to add clusters of phonemes (e.g., a cluster for an ending `lp` sound because `-LP` is not in steno order so the generator could not make a stroke for words like `help`).
+The generator ensures generated strokes are in steno order. So in addition to the phonemes your language uses, you may want to add clusters of phonemes (e.g., a cluster for an ending `lp` sound because `-LP` is not in steno order so the generator could not make a stroke for words like `help`).
 
-In `config.py`, the `VOWELS` and `CONSONANTS` variables specify which phonemes are present in the language/dialect you're generating a dictionary for, and the `VOWELS_TO_STENO` and `LEFT_CONSONANT_TO_STENO`/`RIGHT_CONSONANT_TO_STENO` variables specify how to map those sounds to keys on a steno machine.
+In `config.yaml`, the `vowels` and `consonants` sections specify how phonemes are mapped to keys on a steno machine. The phoneme is specified with its IPA symbol(s) and the keys are specified as a list of ways to write that phoneme. Note that if the keys do not include a vowel or the asterisk key, you need to include a dash to show which side the consonant keys are one.
 
-To properly generate steno strokes, you need to ensure that the `VOWELS` and `CONSONANTS` variables contain all the vowel and consonant sounds for the language/dialect you're generating a dictionary for. The sounds are specified in IPA. Once these variables are set, for each entry in `VOWELS` you must add a corresponding entry to `VOWELS_TO_STENO`. Similarly, for each entry in `CONSONANTS` you must add a corresponding entry to both `LEFT_CONSONANT_TO_STENO` and `RIGHT_CONSONANT_TO_STENO`.
+In cases where it's not possible to produce a consonant sound on one side of the vowel, set the corresponding value for that sound on the unused side to `NO_STENO_MAPPING`.
 
-In cases where it's not possible to produce a consonant sound on one side of the vowel, set the corresponding value for that sound on the unused side to `NO_STENO_MAPPING`. If your theory allows multiple ways to make a certain sound (e.g., both `FT` and `*S` for an ending `st` sound), the entry for that side should be a list of all ways to map the sound to keys.
+If you change the list of phonemes in `consonants`, you'll need to update the `phonology` section as well, which specifies which consonant sounds coming before the vowel can follow each other. For context, the algorithm[^1] used to split a word into syllables is:
+1. Find all vowels; these make the nucleaus of each syllable.
+2. For each nucleus, form the syllable's onset by prepended as many of the leading consonants as possible while following the specified phonology rules.
+3. If there are any additional consonants before the vowel that could not be prepended to the onset, append those consonants to the previous syllable, forming the previous syllable's coda.
+
+So your updates in the `phonology` specify how step 2 is done.
 
 #### Postprocessing Strokes
 
-You may want to modify the generated strokes in a non-phonetic way. For example, to distinguish between homophones. There's two functions in `config.py` where you can add custom postprocessing: `postprocess_steno_sequence()` and `postprocess_generated_dictionary()`.
+For certain strokes, you may want to modify them before exporting them to the final dictionary. You can specify these rules in the `postprocessing` section of `config.yaml`. Additional information about setting up each of the rules mentioned below is available in the comments of the provided `config.yaml`.
 
-Add any postprocessing that is independent of other generated strokes to `postprocess_steno_sequence()`. For example, for words whose last syllable is `ʃən` (the `SHUN` sound in `ration`), you may want to fold that ending into the previous stroke by adding `-GS`.
+Many of the postprocessing steps have a `keep_original_sequence` key. When this is `True`, the original stroke is kept, and if postprocessing would change it, the changed versions are added to the dictionary. When `keep_original_sequence` is `False`, strokes that would not be changed by postprocessing are kept, but strokes that would get changed are replaced by the updated version.
 
-Add any postprocessing that is dependent on other generated strokes to `postprocess_generated_dictionary()`.  For example, you may want to remove conflicts where multiple words were given the same steno sequence. One way to solve this is by iterating through all of the steno sequences for all words and if that sequence is already used by a previous word, keep appending a disambiguation stroke until the sequence is unique.
+##### Disallow -F as Final S
+You may want to allow right-side `s` to be formed with the `-F` key if and only if there are other right-side keys in the stroke. If your `vowels` and `consonants` section is setup to allow `-F` as `s`, you can omit strokes that incorrectly use `-F` as the final `s` by enabling `disallow_f_for_final_s_sound`.
+
+##### Folding Strokes
+
+You may want to fold certain prefix and suffix strokes into the next/previous stroke. You can specify these rules in the `fold_strokes` section.
+
+##### Dropping Vowels
+
+You may find it useful to drop the vowels from certain strokes. You can specify when this should occur in the `drop_vowels` section.
+
+For each `drop_vowels` rule, you can specify what the left and right consonants should be for this rule to apply (or that they can be anything, or anything with at least one key), and you can specify which vowel clusters to drop. A vowel cluster is only dropped if it exactly matches the set of vowels in the stroke.
+
+##### Conflict Resolution
+
+You can enabled the `append_disambiguator_stroke` setting so that when two different words map to the same sequence of strokes, one of the sequences gets appended with a certain stroke until the resulting sequence has no conflicts. The `disambiguator_stroke` field specifies which stroke is appended. The sequence that gets appended to is the one that appears later in the file containing a list of words to generate strokes for; so if that list is sorted so more frequent words are at the top, then the sequence for the less frequent word will get appended to.
 
 ## Combine Dictionaries
 
@@ -88,4 +121,4 @@ This project is under the MIT License. See the `License` file for more info.
 
 Contributions are welcome! Please submit a pull request to contribute to this project. For bugs and feature requests, raise an Issue.
 
-[^1]: If you're generating strokes for a different language, then in addition to `generator/config.py` you may need to update how the IPA listing for a word is split into syllables; this is in `ipa_config.py`. The algorithm for splitting syllables is based on https://linguistics.stackexchange.com/questions/30933/how-to-split-ipa-spelling-into-syllables/30934#30934 and may not work for all languages.
+[^1]: The algorithm for splitting syllables is based on https://linguistics.stackexchange.com/questions/30933/how-to-split-ipa-spelling-into-syllables/30934#30934 and may not work for all languages. If you're generating strokes for a different language, then you may need to update how the IPA listing for a word is split into syllables; this is in `ipa_config.py`.

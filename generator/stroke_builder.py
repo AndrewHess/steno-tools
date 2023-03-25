@@ -1,141 +1,14 @@
 """Convert IPA syllables into steno strokes."""
 
+import copy
 import logging
 
-import config
+from config import NO_STENO_MAPPING
+import postprocessing
+import steno
 
 
-# Each of the parameters is a list of keys to stroke. Each element of each
-# paramter is the keys corresponding to one phoneme in the syllable.
-def build_stroke_from_components(components):
-    """Create a steno stroke from a list of components of the stroke.
-
-    Example:
-        components = ["PB", "OE", "*T"]
-        returns "PBO*ET"
-
-    If any component has a "*" in any position, then the returned stroke will
-    have a "*" in the correct position, otherwise it will not have a star.
-
-    Note: This function requires that one of the components has at least one
-    vowels character (A, O, E, or U).
-
-    Args:
-        Components: A list of steno stroke components. Each element of the list
-            is a string specifying keys to add to the stroke, and any element
-            may contain a "*" anywhere to indicate that a "*" should be added
-            to the correct position in the stroke.
-
-    Returns:
-        A string that is the concatenation of `components` but with the "*" (if
-        any) placed in the correct place.
-        If concatenating `components` would give a stroke that is out of steno
-        order, then None is returned instead.
-    """
-
-    log = logging.getLogger("dictionary_generator")
-    info = build_stroke_helper(components)
-
-    if info is None:
-        return None
-
-    (stroke, has_star) = info
-
-    # Make sure there's a vowel key. If there aren't any, then we need to place
-    # a '-' where the vowels would be. However, the logic gets a bit tricky
-    # because some consonants are on both the left and right sides. So to make
-    # it easier and becuase all English syllables have vowels, I'm going to
-    # require that each stroke as a vowel key.
-    has_vowel = False
-    for vowel in ["A", "O", "E", "U"]:
-        if vowel in stroke:
-            has_vowel = True
-
-    if not has_vowel:
-        log.error("No vowel key in the stroke")
-        return None
-
-    if has_star:
-        # Place the star. It goes between 'O' and 'E' in steno order. This is
-        # a bit easier since we're requiring a vowel key in each stroke.
-        pos = stroke.find("O") + 1
-
-        if pos == 0:
-            pos = stroke.find("A") + 1
-
-        if pos == 0:
-            pos = stroke.find("E")
-
-        if pos == -1:
-            pos = stroke.find("U")
-
-        if pos == -1:
-            log.error("All generated strokes must have a vowel key")
-            return None
-
-        # Add the star.
-        stroke = stroke[:pos] + "*" + stroke[pos:]
-
-    return stroke
-
-
-def build_stroke_helper(components):
-    """Create a steno stroke from a list of components of the stroke.
-
-    Example:
-        components = ["PB", "OE", "*T"]
-        returns ("PBOET", True)
-
-    If any component has a "*" in any position, then the returned stroke will
-    have a "*" in the correct position, otherwise it will not have a star.
-
-    Note: This function requires that one of the components has at least one
-    vowels character (A, O, E, or U).
-
-    Args:
-        Components: A list of steno stroke components. Each element of the list
-            is a string specifying keys to add to the stroke, and any element
-            may contain a "*" anywhere to indicate that a "*" should be added
-            to the correct position in the stroke.
-
-    Returns:
-        A tuple where the first element is the concatenation of `components`
-        but with the "*" (if any) removed, and the second element is True if
-        some componenet had a "*" anywhere.
-        If concatenating `components` would give a stroke that is out of steno
-        order, then None is returned instead.
-    """
-    stroke = ""
-    has_star = False
-    order_pos = 0
-
-    for keys_for_phoneme in components:
-        for letter in keys_for_phoneme:
-            if letter == "*":
-                has_star = True
-                continue
-            if len(stroke) > 0 and letter == stroke[-1]:
-                # We're repeating a letter; this is valid, just don't double
-                # the letter in the returned steno stroke.
-                continue
-
-            order_pos = config.STENO_ORDER.find(letter, order_pos)
-            if order_pos == -1:
-                if letter in config.STENO_ORDER:
-                    # The letter is out of steno order.
-                    return None
-
-                log = logging.getLogger("dictionary_generator")
-                log.error("Invalid symbol `%s` in steno stroke", letter)
-                return None
-
-            # This letter is a valid addition to the stroke.
-            stroke += letter
-
-    return (stroke, has_star)
-
-
-def get_stroke_components(phonemes, phonemes_to_steno):
+def get_stroke_components(phonemes, func_possible_strokes_for_phoneme):
     """Convert phonemes into their corresponding steno keys.
 
     Args:
@@ -160,46 +33,52 @@ def get_stroke_components(phonemes, phonemes_to_steno):
     ways_to_stroke = [[]]
 
     for phoneme in phonemes:
-        steno = phonemes_to_steno[phoneme]
-        if steno is None:
+        possible_strokes = func_possible_strokes_for_phoneme(phoneme)
+        log.debug("Possible strokes for `%s`: %s", phoneme, [str(s) for s in possible_strokes])
+        if possible_strokes is None:
             log.error("No mapping given for phoneme `%s` in `%s`", phoneme, phonemes)
-        elif steno == config.NO_STENO_MAPPING:
+        elif possible_strokes == NO_STENO_MAPPING:
             log.error("No steno mapping for phoneme `%s` in `%s`", phoneme, phonemes)
             return None
-        elif isinstance(steno, list):
-            new_ways_to_stroke = []
-            for keys in steno:
-                for partial_stroke in ways_to_stroke:
-                    new_ways_to_stroke.append(partial_stroke + [keys])
 
-            ways_to_stroke = new_ways_to_stroke
-        else:
-            for prev_strokes in ways_to_stroke:
-                prev_strokes += [steno]
+        new_ways_to_stroke = []
+        for stroke in possible_strokes:
+            keys = stroke.get_keys()
+            # Append the `keys` list to each list of how to stroke the previous
+            # components.
+            for partial_stroke in ways_to_stroke:
+                new_ways_to_stroke.append(partial_stroke + keys)
+
+        ways_to_stroke = new_ways_to_stroke
 
     return ways_to_stroke
 
 
-def syllables_to_steno(syllables):
+def syllables_to_steno(syllables, config):
     """Create a list of possible steno strokes to form the given syllables.
 
     Args:
         syllables: A list of Syllables (see syllable.py)
 
     Returns:
-        A list of strings. Each string is way to write `syllables` in steno
-        given the rules for syllable splitting, postprocessing, and phoneme to
-        steno key conversion in config.py.
+        A list of StrokeSequences. Each stroke sequence is a way to steno the
+        word for the input syllables given the rules for syllable splitting,
+        postprocessing, and phoneme to steno key conversion.
     """
 
+    log = logging.getLogger("dictionary_generator")
     translations = []  # List of all ways to stroke the syllable sequence.
 
     for syllable in syllables:
         ways_to_stroke_onset = get_stroke_components(
-            syllable.onset, config.LEFT_CONSONANT_TO_STENO
+            syllable.onset, config.possible_strokes_for_left_consonant
         )
-        ways_to_stroke_nucleus = get_stroke_components([syllable.nucleus], config.VOWEL_TO_STENO)
-        ways_to_stroke_coda = get_stroke_components(syllable.coda, config.RIGHT_CONSONANT_TO_STENO)
+        ways_to_stroke_nucleus = get_stroke_components(
+            [syllable.nucleus], config.possible_strokes_for_vowel
+        )
+        ways_to_stroke_coda = get_stroke_components(
+            syllable.coda, config.possible_strokes_for_right_consonant
+        )
 
         if (
             ways_to_stroke_onset is None
@@ -228,34 +107,42 @@ def syllables_to_steno(syllables):
         ways_to_stroke_syllable = temp.copy()
 
         potential_strokes = []
-        for stroke_components in ways_to_stroke_syllable:
-            stroke = build_stroke_from_components(stroke_components)
-
-            if stroke is not None:
+        for keys_list in ways_to_stroke_syllable:
+            try:
+                stroke = steno.Stroke(keys_list)
+            except steno.OutOfStenoOrderError:
+                log.debug("Out of steno order `%s`", keys_list)
+            else:
                 potential_strokes.append(stroke)
 
         if len(potential_strokes) == 0:
-            log = logging.getLogger("dictionary_generator")
             log.info("No valid way to stroke the syllable `%s`", syllable)
             return None
 
         if len(translations) == 0:
-            translations = potential_strokes
+            # translations = potential_strokes
+            for stroke in potential_strokes:
+                translations.append(steno.StrokeSequence([stroke]))
         else:
             new_translations = []
-            for prev_strokes in translations:
+            for stroke_sequence in translations:
                 for stroke in potential_strokes:
-                    new_translations.append(prev_strokes + "/" + stroke)
+                    new_sequence = copy.deepcopy(stroke_sequence)
+                    new_sequence.append_stroke(stroke)
+                    new_translations.append(new_sequence)
 
             translations = new_translations.copy()
 
     # Run custom postprocessing.
     new_translations = []
-    for steno in translations:
-        new_steno = config.postprocess_steno_sequence(steno, syllables)
+    for stroke_sequence in translations:
+        new_sequences = postprocessing.postprocess_steno_sequence(
+            stroke_sequence, syllables, config
+        )
 
-        if new_steno is not None:
-            new_translations.append(new_steno)
+        for sequence in new_sequences:
+            if sequence.get_strokes() != []:
+                new_translations.append(sequence)
 
     translations = new_translations
 
