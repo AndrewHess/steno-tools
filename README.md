@@ -38,9 +38,15 @@ Steno Tools allows you to generate a phonetic steno dictionary by providing a li
 1. Download a CSV file that maps words to their pronunciation in IPA. A good choice is to go to https://github.com/open-dict-data/ipa-dict/releases/tag/1.0 and download the `csv.zip` file, unzip it, and extract the file for your language (e.g., `en_US.csv` for American English).
 2. Create a file containing the words that you want to include in the generated dictionary. There should be one word per line. A good option is to download the list of most frequently used English words from https://www.kaggle.com/datasets/rtatman/english-word-frequency and then clean it up by removing the comma and number after each word, capitalizing certain words, and anything else you want to do.
 3. In a terminal, go into the `generator` directory of this repository.
-4. Run `python generate_phonetic_dictionary.py /path/to/en_US.csv /path/to/your_word_list`.
+4. In a terminal, run
+```
+python generate_phonetic_dictionary.py /path/to/en_US.csv /path/to/your_word_list --config_file generator/configs/config.yaml
+```
+5. View the generated dictionary in `output.json`.
 
-To see usage options, run `python generate_phonetic_dictionary.py -h`. To write the emitted logs to `logs.txt` rather than standard output, append ` 2> logs.txt` to your command.
+To write the emitted logs to `logs.txt` rather than to the console, append ` 2> logs.txt` to your command.
+
+To see usage options, run `python generate_phonetic_dictionary.py -h`.
 
 ### Default Theory
 
