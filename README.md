@@ -15,6 +15,8 @@ Stenography is a fascinating and efficient way of writing, used by court reporte
     - [Postprocessing Strokes](#postprocessing-strokes)
 - [Combine Dictionaries](#combine-dictionaries)
   - [Usage](#usage-1)
+- [Sort Words By Frequency](#sort-words-by-frequency)
+  - [Usage](#usage-2)
 - [License](#license)
 - [Contributing](#contributing)
 
@@ -46,7 +48,7 @@ python generate_phonetic_dictionary.py /path/to/en_US.csv /path/to/your_word_lis
 
 To write the emitted logs to `logs.txt` rather than to the console, append ` 2> logs.txt` to your command.
 
-To see usage options, run `python generate_phonetic_dictionary.py -h`.
+For more usage information, run `python generate_phonetic_dictionary.py -h`.
 
 ### Default Theory
 
@@ -108,10 +110,30 @@ You can enabled the `append_disambiguator_stroke` setting so that when two diffe
 You may want to split your steno dictionaries into different files for better organization, but be able to easily toggle them on and off en masse. The `combine_dictionaries.py` script allows you to combine all the dictionaries in a specified directory into a single dictionary. This can be helpful if you want to split your main dictionary into normal words, proper nouns, written numbers, dates, etc. but you know that whenever you want one of these dictionaries to be active, you want them all to be active.
 
 ### Usage
+
 1. In a terminal, run `cd /path/to/your/dictionaries`
 2. Run `python /path/to/steno-tools/combine_dictionaries.py <directory>` where `<directory>` is the name of the folder containing the dictionaries you want to combine.
 
-To see usage options, run `python /path/to/steno-tools/combine_dictionaries.py -h`.
+For more usage information, run `python /path/to/steno-tools/combine_dictionaries.py -h`.
+
+## Sort Words By Frequency
+
+You may want to sort a list of words by freqency so you can add more frequent words to your dictionary first or to compile a list of practice words. To do this, use the `sort_by_frequency.py` script. Provide a file containing the list of words to sort and another file listing the words by their frequency. For example, you can use the English word frequency list available at https://www.kaggle.com/datasets/rtatman/english-word-frequency.
+
+
+### Usage
+
+To sort a list of words by their order in a different file, run the following.
+
+```
+python /path/to/steno-tools/sort_by_frequency.py  --word-list /your/words_to_sort.txt --frequency-file /many/words_by_frequency.txt --output-file output.txt
+```
+
+Both input files should have exactly one word per line and nothing else.
+
+Words in the word list file that are not in the frequency list file are printed to the console. If you just want to see which words in the word list file are not in the frequency file, without writing the resulting sorted list to a file, use the `--no-output` flag instead of `--output-file`.
+
+For more usage information, run `python /path/to/steno-tools/sort_by_frequency.py -h`
 
 ## License
 
