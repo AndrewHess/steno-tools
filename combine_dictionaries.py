@@ -101,12 +101,25 @@ def combine_json_files_directory(directory, recursive, force_overwrite, log):
         log.info("Merging `%s`", file)
 
         with open(file, "r", encoding="UTF-8") as file:
-            file_contents = json.load(file)
-            combined_json.update(file_contents)
+            contents = json.load(file)
+
+            for key in contents:
+                if key in combined_json:
+                    log_func = log.debug if contents[key] == combined_json[key] else log.warning
+                    log_func(
+                        "Ignoring `%s` rule `%s: %s`; `%s: %s` has higher priority",
+                        file.name,
+                        key,
+                        contents[key],
+                        key,
+                        combined_json[key],
+                    )
+                else:
+                    combined_json[key] = contents[key]
 
     # Write the combined JSON a file.
     with open(new_filename, "w+", encoding="UTF-8") as file:
-        json.dump(combined_json, file)
+        json.dump(combined_json, file, indent=0)
         print(f"{new_filename} written successfully.")
 
 
@@ -123,13 +136,17 @@ def main():
     parser.add_argument(
         "-r", "--recursive", action="store_true", help="combine subdirectories recursively"
     )
-    parser.add_argument("-v", "--verbose", action="store_true", help="increase output verbosity")
+    parser.add_argument("-v", "--verbose", action="count", help="increase output verbosity")
     args = parser.parse_args()
 
     # Setup logging.
     log_level = logging.WARNING
-    if args.verbose >= 1:
+    if args.verbose is None:
+        pass
+    elif args.verbose == 1:
         log_level = logging.INFO
+    elif args.verbose >= 2:
+        log_level = logging.DEBUG
 
     log_format = "%(levelname)s: %(message)s"
     logging.basicConfig(level=log_level, format=log_format)
