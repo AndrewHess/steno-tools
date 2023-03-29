@@ -260,6 +260,11 @@ class Stroke:
 
         return keys
 
+    def is_empty(self):
+        """Return True if no keys are active."""
+
+        return not self.get_keys()
+
     def has_left_consonant(self):
         """Return True if the stroke has a left consonant key active."""
 
@@ -342,7 +347,8 @@ class StrokeSequence:
         return False
 
     def __str__(self):
-        return "/".join([str(stroke) for stroke in self._strokes])
+        stroke_strings = [str(stroke) for stroke in self._strokes if not stroke.is_empty()]
+        return "/".join(stroke_strings)
 
     def get_strokes(self):
         """Return the list of strokes comprising this sequence."""
