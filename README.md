@@ -114,6 +114,8 @@ You may want to split your steno dictionaries into different files for better or
 1. In a terminal, run `cd /path/to/your/dictionaries`
 2. Run `python /path/to/steno-tools/combine_dictionaries.py <directory>` where `<directory>` is the name of the folder containing the dictionaries you want to combine.
 
+By default, only JSON files directly in the specified directory will be merged, but you can recursively search all directories with the `--recursive` flag. If multiple files have an entry for the same stroke sequence, the first entry will have priority and later entries will be ignored. Files are searched alphabetically but filename portions with numbers are sorted by the numbers; so if you have three files `priority-1-prefixes.json`, `priority-5-names.json`, and `priority-20-other.json`, they will be searched in that order, NOT as `priority-1-prefixes.json`, `priority-20-other.json`, `priority-5-names.json`. Use the flag `-v` or `-vv` to get more information on which files are searched when for your specific directory structure.
+
 For more usage information, run `python /path/to/steno-tools/combine_dictionaries.py -h`.
 
 ## Sort Words By Frequency
