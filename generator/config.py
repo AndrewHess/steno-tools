@@ -6,6 +6,7 @@ import schema
 import yaml
 
 import steno
+from syllable import SyllableRegion, SyllableAtom
 
 
 NO_STENO_MAPPING = "NO_STENO_MAPPING"
@@ -22,6 +23,12 @@ _STR_KEYS = "keys"
 _STR_CONSONANTS = "consonants"
 _STR_KEYS_LEFT = "keys_left"
 _STR_KEYS_RIGHT = "keys_right"
+
+_STR_SEQUENCE_OVERRIDES = "phoneme_sequence_overrides"
+_STR_SEQUENCE = "sequence"
+_STR_TYPE_LEFT_CONSONANT = "LEFT_CONSONANT"
+_STR_TYPE_VOWEL = "VOWEL"
+_STR_TYPE_RIGHT_CONSONANT = "RIGHT_CONSONANT"
 
 _STR_PHONOLOGY = "phonology"
 _STR_ALLOWED = "allowed"
@@ -76,6 +83,23 @@ class Config:
                     _STR_PHONEME: str,
                     _STR_KEYS_LEFT: schema.Or([str], NO_STENO_MAPPING),
                     _STR_KEYS_RIGHT: schema.Or([str], NO_STENO_MAPPING),
+                }
+            ],
+            schema.Optional(_STR_SEQUENCE_OVERRIDES): [
+                {
+                    _STR_SEQUENCE: [
+                        schema.And(
+                            [str],
+                            lambda lst: len(lst) == 2
+                            and lst[1]
+                            in [
+                                _STR_TYPE_LEFT_CONSONANT,
+                                _STR_TYPE_VOWEL,
+                                _STR_TYPE_RIGHT_CONSONANT,
+                            ],
+                        )
+                    ],
+                    _STR_KEYS: [str],
                 }
             ],
             _STR_PHONOLOGY: [
@@ -142,6 +166,8 @@ class Config:
         self._vowel_to_possible_strokes = {}
         self._left_consonant_to_possible_strokes = {}
         self._right_consonant_to_possible_strokes = {}
+        self._phoneme_tuples_to_possible_key_clusters = {}
+        self._phoneme_sequence_overrides = {}
         self._allowed_first_consonants = []
         self._consonants_allowed_after = {}
         self._postprocessing_settings = {}
@@ -162,6 +188,8 @@ class Config:
     def _process_config(self):
         self._process_vowels_mapping()
         self._process_consonants_mapping()
+        self._process_sequence_overrides()
+        self._compute_phoneme_tuples_to_possible_key_clusters()
         self._process_phonology_rules()
         self._process_postprocessing_settings()
 
@@ -175,6 +203,10 @@ class Config:
         self._right_consonant_to_possible_strokes = self._process_phoneme_mapping(
             _STR_CONSONANTS, _STR_KEYS_RIGHT
         )
+
+    def _process_sequence_overrides(self):
+        # This whole section is optional.
+        self._phoneme_sequence_overrides = self._config.get(_STR_SEQUENCE_OVERRIDES, [])
 
     def _process_phonology_rules(self):
         """Extract the phonology rules from the config.
@@ -270,6 +302,59 @@ class Config:
 
         return phoneme_to_possible_strokes
 
+    def _compute_phoneme_tuples_to_possible_key_clusters(self):
+        self._phoneme_tuples_to_possible_key_clusters = {}
+
+        # Add single phonemes.
+        for phoneme, possible_strokes in self._left_consonant_to_possible_strokes.items():
+            key = (SyllableAtom(phoneme, SyllableRegion.ONSET),)  # It's a 1-element tuple.
+            value = [stroke.get_keys() for stroke in possible_strokes]
+            self._phoneme_tuples_to_possible_key_clusters[key] = value
+
+        for phoneme, possible_strokes in self._vowel_to_possible_strokes.items():
+            key = (SyllableAtom(phoneme, SyllableRegion.NUCLEUS),)  # It's a 1-element tuple.
+            value = [stroke.get_keys() for stroke in possible_strokes]
+            self._phoneme_tuples_to_possible_key_clusters[key] = value
+
+        for phoneme, possible_strokes in self._right_consonant_to_possible_strokes.items():
+            key = (SyllableAtom(phoneme, SyllableRegion.CODA),)  # It's a 1-element tuple.
+            value = [stroke.get_keys() for stroke in possible_strokes]
+            self._phoneme_tuples_to_possible_key_clusters[key] = value
+
+        # Add phoneme clusters.
+        for override in self._phoneme_sequence_overrides:
+            syllable_atom_list = []
+
+            for phoneme_and_syllable_region in override[_STR_SEQUENCE]:
+                # The schema validation should have already check that
+                # `phoneme_and_syllable_region` is a two-element list where the
+                # first element is a string (the phoneme) and the second is one
+                # of _STR_TYPE_LEFT_CONSONANT, _STR_TYPE_VOWEL, or
+                # _STR_TYPE_RIGHT_CONSONANT.
+                assert len(phoneme_and_syllable_region) == 2
+
+                phoneme = phoneme_and_syllable_region[0]
+                match phoneme_and_syllable_region[1]:
+                    case region_str if region_str == _STR_TYPE_LEFT_CONSONANT:
+                        region = SyllableRegion.ONSET
+                    case region_str if region_str == _STR_TYPE_VOWEL:
+                        region = SyllableRegion.NUCLEUS
+                    case region_str if region_str == _STR_TYPE_RIGHT_CONSONANT:
+                        region = SyllableRegion.CODA
+                    case _:
+                        raise InvalidConfigError(
+                            "Unknown region `{phoneme_and_syllable_region[1]}`"
+                        )
+
+                syllable_atom_list.append(SyllableAtom(phoneme, region))
+
+            key = tuple(syllable_atom_list)
+            value = [
+                steno.Stroke.from_string(keys_string).get_keys()
+                for keys_string in override[_STR_KEYS]
+            ]
+            self._phoneme_tuples_to_possible_key_clusters[key] = value
+
     def get_vowels(self):
         """Return the vowels specified in the config.
 
@@ -287,6 +372,18 @@ class Config:
         """
 
         return self._left_consonant_to_possible_strokes.keys()
+
+    def get_phoneme_tuples_to_possible_key_clusters(self):
+        """Return a dict from a phoneme cluster to steno keys.
+
+        Returns:
+            A dictionary where each key is a tuple of SyllableAtoms and each
+            value is a list. Each element of the value list is a list of Keys
+            specifying one valid way to map the group of phonemes (that is the
+            dictionary key) to steno keys.
+        """
+
+        return self._phoneme_tuples_to_possible_key_clusters
 
     def possible_strokes_for_left_consonant(self, phoneme):
         """Return how to stroke a certain consonant with left consonants.

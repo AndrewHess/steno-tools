@@ -1,5 +1,6 @@
 """Read IPA pronunciations for words and split IPA words into syllables."""
 
+import dataclasses
 import logging
 import random
 import re
@@ -135,6 +136,14 @@ def split_ipa_into_syllables(ipa, config):
     for vowel in vowels:
         ipa_copy = ipa_copy.replace(vowel, phoneme_to_marker[vowel])
 
+    @dataclasses.dataclass
+    class SyllablePhonemes:
+        """A struct used internally to strore phonemes for a syllable."""
+
+        onset: list[str]
+        nucleus: str
+        coda: list[str]
+
     syllables = []
     syllable_start_index = 0
     matches = re.finditer(r"\([0-9]+\)", ipa_copy)
@@ -144,7 +153,7 @@ def split_ipa_into_syllables(ipa, config):
         marker = ipa_copy[match.start() : match.end()]
         nucleus = marker_to_phoneme[marker]
         coda = []
-        syllables.append(Syllable(onset, nucleus, coda))
+        syllables.append(SyllablePhonemes(onset, nucleus, coda))
         syllable_start_index = match.end()
 
     if len(syllables) == 0:
@@ -200,4 +209,4 @@ def split_ipa_into_syllables(ipa, config):
 
         syllables[i].onset = new_onset
 
-    return syllables
+    return [Syllable(syll.onset, syll.nucleus, syll.coda) for syll in syllables]
