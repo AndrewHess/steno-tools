@@ -132,6 +132,16 @@ consonants:
     keys_left: ["SKWR-"]
     keys_right: ["-PBLG"]
 
+# Add any overrides for how a sequence of phonemes should be mapped to steno
+# keys. The elements of each rule are:
+#   sequence: A list of lists. Each inner list must have exactly two elements
+#       with the first being the phoneme in IPA and the second element being
+#       either LEFT_CONSONANT, VOWEL, or RIGHT_CONSONANT to specify that this
+#       rule only applies when the phoneme is in that position of the syllable.
+#   keys: A list of strokes with each stroke being a valid way to map the
+#       specified phoneme sequence to steno keys. If there is more than one
+#       item in the list, then redundant translations will be made so that the
+#       phoneme sequence can be stroked with any of the indicated key clusters.
 phoneme_sequence_overrides:
   - sequence: # Ex: lURCH, resEARCH
     - ["ɝ", VOWEL]
