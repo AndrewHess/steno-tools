@@ -145,6 +145,18 @@ phoneme_sequence_overrides:
     - ["ɔɹ", VOWEL]
     - ["tʃ", RIGHT_CONSONANT]
     keys: ["OFRPB"]
+  - sequence: # Ex: sERVe, cURVe
+    - ["ɝ", VOWEL]
+    - ["v", RIGHT_CONSONANT]
+    keys: ["UFRB"]
+  - sequence: # Ex: thERE'VE
+    - ["ɛɹ", VOWEL]
+    - ["v", RIGHT_CONSONANT]
+    keys: ["AEUFRB"]
+  - sequence: # Ex: cARVe, stARVe
+    - ["ɑɹ", VOWEL]
+    - ["v", RIGHT_CONSONANT]
+    keys: ["AFRB"]
   - sequence: # Ex: firST heiST, burST
     - ["s", RIGHT_CONSONANT]
     - ["t", RIGHT_CONSONANT]
