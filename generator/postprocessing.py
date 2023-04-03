@@ -46,8 +46,8 @@ def _disallow_f_for_final_s_sound(strokes, syllables_ipa):
             Syllable.
     """
 
-    for stroke, ipa in zip(strokes, syllables_ipa):
-        if stroke.get_last_key() == Key.RF and len(ipa.coda) > 0 and ipa.coda[-1] == "s":
+    for stroke, syllable in zip(strokes, syllables_ipa):
+        if stroke.get_last_key() == Key.RF and syllable.is_last_phoneme_s():
             # This is invalid.
             strokes.clear()
 

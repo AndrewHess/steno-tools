@@ -12,6 +12,7 @@ Stenography is a fascinating and efficient way of writing, used by court reporte
   - [Default Theory](#default-theory)
   - [Customizing the Default Theory](#customizing-the-generated-theory)
     - [Customizing Phonemes](#customizing-phonemes)
+    - [Overriding Phoneme Sequence Mappings](#overriding-phoneme-sequence-mappings)
     - [Postprocessing Strokes](#postprocessing-strokes)
 - [Combine Dictionaries](#combine-dictionaries)
   - [Usage](#usage-1)
@@ -81,6 +82,20 @@ If you change the list of phonemes in `consonants`, you'll need to update the `p
 3. If there are any additional consonants before the vowel that could not be prepended to the onset, append those consonants to the previous syllable, forming the previous syllable's coda.
 
 So your updates in the `phonology` specify how step 2 is done.
+
+#### Overriding Phoneme Sequence Mappings
+
+By default, the stroke for a syllable is constructed by mapping each phoneme to a set of keys and appending those keys to the stroke while ensuring that the stroke remains in steno order. However, in some cases you may want to override this behavior so that certain phoneme sequences are mapped all at once to a custom set of steno keys. This is done in the `phoneme_sequence_overrides` section of the YAML config file by adding a list of overrides. For example, if you want to map the right-side phoneme sequence `mp` to `*PL`, you would add the following to your config file.
+```
+phoneme_sequence_overrides:
+  - sequence:
+    - ["m", RIGHT_CONSONANT]
+    - ["p", RIGHT_CONSONANT]
+    keys: ["*PL"]
+```
+For each phoneme in the sequence, you must specify it as a `LEFT_CONSONANT`, `VOWEL`, or `RIGHT_CONSONANT`.
+
+Notably, these overrides only apply after words are split into syllables. This means that a word like `compost` will continue to be split into the syllables `com` and `post` (so this override will not apply to that word becuase the `m` and `p` are on different syllables), but the override will apply to the word `lamp`.
 
 #### Postprocessing Strokes
 

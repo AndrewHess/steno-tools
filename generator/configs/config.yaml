@@ -52,12 +52,6 @@ vowels:
     keys: ["AOU"] # Note: this is the same as for just 'u'.
   - phoneme: "jə" # Sounds the same as 'ju' to me.
     keys: ["AOU"]
-  - phoneme: "ɝtʃ" # Ex: lURCH, resEARCH
-    keys: ["UFRPB"]
-  - phoneme: "ɑɹtʃ" # Ex: ARCH, mARCH,
-    keys: ["AFRPB"]
-  - phoneme: "ɔɹtʃ" # Ex: tORCH, pORCH
-    keys: ["OFRPB"]
 
 # Consonant phonemes that may appear in the IPA pronunciation of words that
 # you want to generate steno strokes for. If you don't want to add a way to make
@@ -137,20 +131,58 @@ consonants:
   - phoneme: "dʒ" # Ex: JuDGe, friDGe, Germ
     keys_left: ["SKWR-"]
     keys_right: ["-PBLG"]
-  ############ Consonant Clusters ############
-  - phoneme: "st" # Ex: firST heiST, burST
-    keys_left: ["ST-"]
-    keys_right: ["-FT", "*S"]
-  - phoneme: "ŋk" # Ex: baNK, thaNKs
-    keys_left: NO_STENO_MAPPING
-    keys_right: ["-PBG"]  # Note: this colides with '-ŋ'
-  - phoneme: "mp" # Ex: raMP, cluMP
-    keys_left: NO_STENO_MAPPING
-    keys_right: ["*PL"]
-  - phoneme: "ntʃ" # Ex: lauNCH, braNCH
-    keys_left: NO_STENO_MAPPING
-    keys_right: ["-FRPB"]
 
+# Add any overrides for how a sequence of phonemes should be mapped to steno
+# keys. The elements of each rule are:
+#   sequence: A list of lists. Each inner list must have exactly two elements
+#       with the first being the phoneme in IPA and the second element being
+#       either LEFT_CONSONANT, VOWEL, or RIGHT_CONSONANT to specify that this
+#       rule only applies when the phoneme is in that position of the syllable.
+#   keys: A list of strokes with each stroke being a valid way to map the
+#       specified phoneme sequence to steno keys. If there is more than one
+#       item in the list, then redundant translations will be made so that the
+#       phoneme sequence can be stroked with any of the indicated key clusters.
+phoneme_sequence_overrides:
+  - sequence: # Ex: lURCH, resEARCH
+    - ["ɝ", VOWEL]
+    - ["tʃ", RIGHT_CONSONANT]
+    keys: ["UFRPB"]
+  - sequence: # Ex: ARCH, mARCH
+    - ["ɑɹ", VOWEL]
+    - ["tʃ", RIGHT_CONSONANT]
+    keys: ["AFRPB"]
+  - sequence: # Ex: tORCH, pORCH
+    - ["ɔɹ", VOWEL]
+    - ["tʃ", RIGHT_CONSONANT]
+    keys: ["OFRPB"]
+  - sequence: # Ex: sERVe, cURVe
+    - ["ɝ", VOWEL]
+    - ["v", RIGHT_CONSONANT]
+    keys: ["UFRB"]
+  - sequence: # Ex: thERE'VE
+    - ["ɛɹ", VOWEL]
+    - ["v", RIGHT_CONSONANT]
+    keys: ["AEUFRB"]
+  - sequence: # Ex: cARVe, stARVe
+    - ["ɑɹ", VOWEL]
+    - ["v", RIGHT_CONSONANT]
+    keys: ["AFRB"]
+  - sequence: # Ex: firST heiST, burST
+    - ["s", RIGHT_CONSONANT]
+    - ["t", RIGHT_CONSONANT]
+    keys: ["-FT", "*S"]
+  - sequence: # Ex: baNK, thaNKs
+    - ["ŋ", RIGHT_CONSONANT]
+    - ["k", RIGHT_CONSONANT]
+    keys: ["-PBG"]  # Note: this collides with '-ŋ'
+  - sequence: # Ex: raMP, cluMP
+    - ["m", RIGHT_CONSONANT]
+    - ["p", RIGHT_CONSONANT]
+    keys: ["*PL"]
+  - sequence: # Ex: lauNCH, braNCH
+    - ["n", RIGHT_CONSONANT]
+    - ["tʃ", RIGHT_CONSONANT]
+    keys: ["-FRPB"]
 
 ############################# Phonology #############################
 
@@ -160,14 +192,12 @@ phonology:
   # Add your custom allowed rules to the below block.
   - allowed:
       # These sounds can come immediately before a vowel.
-      immediately_before_vowel: ["st"]
+      immediately_before_vowel: []
 
       # If the previous sound is an element of `prev` and the next sound is an
       # element of the corresponding `next` array, then `prev + next` is a
       # valid consonant cluster before a vowel.
-      previous_and_next_sounds:
-        - prev: ["st"]
-          next: ["j", "w", "ɹ"]
+      previous_and_next_sounds: []
 
   # The below rules are from https://en.wikipedia.org/wiki/English_phonology
   # You probably shouldn't change this unless:
