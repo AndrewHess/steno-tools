@@ -1,0 +1,26 @@
+[build-system]
+requires = ["poetry-core>=1.1.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "steno-tools"
+version = "0.1.0"
+description = "Tools for generating and managing stenography dictionaries."
+authors = ["Andrew Hess <andrew7hess@gmail.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+more-itertools = "^9.1.0"
+PyYAML = "^6.0"
+schema = "^0.7.5"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2"
+pytest-cov = "^2.12"
+mypy = "^0.910"
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
