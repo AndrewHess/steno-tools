@@ -1,13 +1,55 @@
-"""Generate a steno dictionary by converting words to strokes."""
+"""Generate a steno dictionary by converting words to strokes.
+
+The word list is given by a file containing each word to make an entry for on a
+separate line. The pronunciations are given by a separate file that lists words
+along with their IPA pronunciation; for example, the files found here:
+https://github.com/open-dict-data/ipa-dict
+"""
 
 import logging
+import sys
 
-import ipa_utils
-import postprocessing
-import stroke_builder
+from steno_tools import utils
+from .config import Config, InvalidConfigError
+from . import ipa_utils
+from . import postprocessing
+from . import stroke_builder
 
 
-def generate_dictionary(ipa_file, word_list_file, config):
+def generate_phonetic_dictionary(
+    ipa_notation_file, words_file, config_file, output_file, verbosity
+):
+    """Generate a phonetic stenography dictionary.
+
+    Args:
+        ipa_notation_file: File giving the pronunciation for words. Each line
+            should be formatted as <word>,/<ipa1>/,/<ipa2>/... so that
+            everything before the first comma is the word and each valid
+            pronunciation is between forward slashes.
+        words_file: File containing the words to generate steno entries for.
+            Each word shoulbe be on its own line.
+        config_file: YAML file specifying how to translate phonetic notations
+            into steno strokes.
+        output_file: File to write the generated dictionary to.
+        verbosity: Integer specifying how verbose to make the emitted logs.
+            Higher values mean more verbose.
+    """
+
+    utils.setup_logging(verbosity)
+    log = logging.getLogger("dictionary_generator")
+
+    try:
+        config = Config(config_file)
+    except InvalidConfigError as err:
+        log.critical(err)
+        sys.exit(1)
+
+    # Create the dictionary.
+    words_and_strokes = _generate_entries(ipa_notation_file, words_file, config)
+    _write_dictionary_to_file(words_and_strokes, output_file)
+
+
+def _generate_entries(ipa_file, word_list_file, config):
     """Create a dictionary mapping a word to ways to write it in steno.
 
     Args:
@@ -81,7 +123,7 @@ def generate_dictionary(ipa_file, word_list_file, config):
     return words_and_translations
 
 
-def write_dictionary_to_file(words_and_translations, output_file):
+def _write_dictionary_to_file(words_and_translations, output_file):
     """Write steno strokes for words to a file in JSON format.
 
     Args:

@@ -24,3 +24,6 @@ mypy = "^0.910"
 addopts = [
     "--import-mode=importlib",
 ]
+
+[tool.poetry.scripts]
+steno-tools = "steno_tools.cli:main"

@@ -5,8 +5,8 @@ import itertools
 import logging
 import more_itertools
 
-import postprocessing
-import steno
+from . import postprocessing
+from . import steno
 
 
 def syllables_to_steno(syllables, config):

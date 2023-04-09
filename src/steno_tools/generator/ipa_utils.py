@@ -6,7 +6,7 @@ import random
 import re
 import sys
 
-from syllable import Syllable
+from .syllable import Syllable
 
 
 def create_ipa_lookup_dictionary(filename):

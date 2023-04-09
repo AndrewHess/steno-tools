@@ -6,7 +6,7 @@ that need to know about all other generated strokes should be made in
 postprocess_generated_dictionary().
 """
 
-from steno import Key
+from .steno import Key
 
 
 def postprocess_steno_sequence(stroke_sequence, syllables_ipa, config):

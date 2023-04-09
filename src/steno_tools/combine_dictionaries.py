@@ -1,10 +1,11 @@
 """Combine JSON files in a directory into a single JSON file."""
 
-import argparse
 import json
 import logging
 import os
 import re
+
+from steno_tools import utils
 
 
 def natural_sort_key(string):
@@ -52,7 +53,7 @@ def get_sorted_json_files(directory, recursive):
     return json_files
 
 
-def combine_json_files_directory(directory, recursive, force_overwrite, log):
+def combine_json_files(directory, recursive, force_overwrite, verbosity):
     """Combine all JSON files in a directory into a single JSON file.
 
     The created file is named <directory>.json.
@@ -64,7 +65,8 @@ def combine_json_files_directory(directory, recursive, force_overwrite, log):
         force_overwrite: True if the output file should be written even if it
             already exists. If the file doesn't already exist, this parameter
             doesn't do anything.
-        log: A logger to write logs
+        verbosity: Integer specifying how verbose to make the emitted logs.
+            Higher values mean more verbose.
 
     Raises:
         ValueError: If the input argument is not a directory.
@@ -72,6 +74,10 @@ def combine_json_files_directory(directory, recursive, force_overwrite, log):
     Returns:
         None
     """
+
+    # Setup logging.
+    utils.setup_logging(verbosity)
+    log = logging.getLogger("merge_dictionaries")
 
     # Ensure the directory exists.
     if not os.path.isdir(directory):
@@ -121,39 +127,3 @@ def combine_json_files_directory(directory, recursive, force_overwrite, log):
     with open(new_filename, "w+", encoding="UTF-8") as file:
         json.dump(combined_json, file, indent=0)
         print(f"{new_filename} written successfully.")
-
-
-def main():
-    """Main function that calls combine_json_files_directory."""
-
-    parser = argparse.ArgumentParser(
-        description="Combine all JSON files in a directory into a single JSON file."
-    )
-    parser.add_argument("directory", help="the directory containing JSON files to be combined")
-    parser.add_argument(
-        "-f", "--force", action="store_true", help="force overwriting the output file"
-    )
-    parser.add_argument(
-        "-r", "--recursive", action="store_true", help="combine subdirectories recursively"
-    )
-    parser.add_argument("-v", "--verbose", action="count", help="increase output verbosity")
-    args = parser.parse_args()
-
-    # Setup logging.
-    log_level = logging.WARNING
-    if args.verbose is None:
-        pass
-    elif args.verbose == 1:
-        log_level = logging.INFO
-    elif args.verbose >= 2:
-        log_level = logging.DEBUG
-
-    log_format = "%(levelname)s: %(message)s"
-    logging.basicConfig(level=log_level, format=log_format)
-    log = logging.getLogger("combine_dictionaries")
-
-    combine_json_files_directory(args.directory, args.recursive, args.force, log)
-
-
-if __name__ == "__main__":
-    main()

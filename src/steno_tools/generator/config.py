@@ -5,8 +5,8 @@ import logging
 import schema
 import yaml
 
-import steno
-from syllable import SyllableRegion, SyllableAtom
+from . import steno
+from .syllable import SyllableRegion, SyllableAtom
 
 
 NO_STENO_MAPPING = "NO_STENO_MAPPING"
