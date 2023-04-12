@@ -59,21 +59,42 @@ class Stroke:
             self.add_keys_maintain_steno_order(keys)
 
     def __eq__(self, other):
+        if other is None:
+            return False
+
         if self._last_active_pos != other._last_active_pos:
             return False
 
         return self._active_keys_bitmap == other._active_keys_bitmap
 
     def __lt__(self, other):
-        for i, (active_self, active_other) in enumerate(
-            zip(self._active_keys_bitmap, other._active_keys_bitmap)
-        ):
-            if active_self and not active_other:
-                return other._last_active_pos > i
+        if other is None:
+            return False
 
-            if active_other and not active_self:
-                return self._last_active_pos < i
+        self_keys = self.get_keys()
+        other_keys = other.get_keys()
 
+        self_keys_sans_star = list(filter(lambda key: key is not Key.STAR, self_keys))
+        other_keys_sans_star = list(filter(lambda key: key is not Key.STAR, other_keys))
+
+        for self_key, other_key in zip(self_keys_sans_star, other_keys_sans_star):
+            if self_key is not other_key:
+                return self_key.index < other_key.index
+
+        if len(self_keys_sans_star) != len(other_keys_sans_star):
+            return len(self_keys_sans_star) < len(other_keys_sans_star)
+
+        self_has_star = self._active_keys_bitmap[Key.STAR.index]
+        other_has_star = other._active_keys_bitmap[Key.STAR.index]
+
+        if self_has_star and not other_has_star:
+            return False
+
+        if other_has_star and not self_has_star:
+            return True
+
+        # They are equal.
+        assert self == other
         return False
 
     def __hash__(self):
@@ -119,6 +140,14 @@ class Stroke:
             The stroke corresponding to the input string.
         """
 
+        # Ensure there's something separating the left and right consonants.
+        for key in [Key.A, Key.O, Key.STAR, Key.E, Key.U]:
+            if key.letter in stroke_str:
+                break
+        else:
+            if "-" not in stroke_str:
+                raise MissingDashInStrokeError()
+
         keys = []
         past_middle = False
 
@@ -136,26 +165,28 @@ class Stroke:
                     past_middle = True
                     keys.append(key)
                     break
+            else:
+                consonants = [Key.LS, Key.LT, Key.LK, Key.LP, Key.LW, Key.LH, Key.LR]
+                if past_middle:
+                    consonants = [
+                        Key.RF,
+                        Key.RR,
+                        Key.RP,
+                        Key.RB,
+                        Key.RL,
+                        Key.RG,
+                        Key.RT,
+                        Key.RS,
+                        Key.RD,
+                        Key.RZ,
+                    ]
 
-            consonants = [Key.LS, Key.LT, Key.LK, Key.LP, Key.LW, Key.LH, Key.LR]
-            if past_middle:
-                consonants = [
-                    Key.RF,
-                    Key.RR,
-                    Key.RP,
-                    Key.RB,
-                    Key.RL,
-                    Key.RG,
-                    Key.RT,
-                    Key.RS,
-                    Key.RD,
-                    Key.RZ,
-                ]
-
-            for key in consonants:
-                if key_str == key.letter:
-                    keys.append(key)
-                    break
+                for key in consonants:
+                    if key_str == key.letter:
+                        keys.append(key)
+                        break
+                else:
+                    raise OutOfStenoOrderError(f"`{stroke_str}` is out of steno order")
 
         if not past_middle:
             raise MissingDashInStrokeError()

@@ -77,6 +77,9 @@ def get_ipa_symbols(word_to_ipa):
         A Set of the IPA symbols used in `word_to_ipa`
     """
 
+    if len(word_to_ipa) == 0:
+        return set()
+
     # Check the IPA symbols used in a bunch of random words.
     num_words_to_check = 10000
 
@@ -111,6 +114,7 @@ def split_ipa_into_syllables(ipa, config):
 
     Args:
         ipa: A string representing the pronunciation for some word in IPA.
+        config: The Config specifying how to map IPA to strokes.
 
     Returns:
         A list of Syllables (see syllable.py) for the word.

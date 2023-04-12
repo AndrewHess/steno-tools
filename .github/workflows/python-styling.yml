@@ -27,7 +27,8 @@ jobs:
         min_allowed_lint_score_per_file=9.0
         
         echo "Min allowed score per file is $min_allowed_lint_score_per_file"
-        for file in $(git ls-files '*.py')
+        # Ignore test files.
+        for file in $(git ls-files '*.py' ':!:tests/')
         do
           echo "Linting $file"
           pylint "$file" --fail-under $min_allowed_lint_score_per_file

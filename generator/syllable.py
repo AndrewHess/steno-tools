@@ -41,7 +41,8 @@ class Syllable:
         for phoneme in onset:
             self._atoms.append(SyllableAtom(phoneme, SyllableRegion.ONSET))
 
-        self._atoms.append(SyllableAtom(nucleus, SyllableRegion.NUCLEUS))
+        if nucleus != "":
+            self._atoms.append(SyllableAtom(nucleus, SyllableRegion.NUCLEUS))
 
         for phoneme in coda:
             self._atoms.append(SyllableAtom(phoneme, SyllableRegion.CODA))
