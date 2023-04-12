@@ -7,6 +7,8 @@ Stenography is a fascinating and efficient way of writing, used by court reporte
 ## Table of Contents
 
 - [Installation and Requirements](#installation-and-requirements)
+- [Basic Usage](#basic-usage)
+  - [Suggested Workflow](#suggested-workflow)
 - [Generate a Phonetic Dictionary](#generate-a-phonetic-dictionary)
   - [Usage](#usage)
   - [Default Theory](#default-theory)
@@ -14,7 +16,7 @@ Stenography is a fascinating and efficient way of writing, used by court reporte
     - [Customizing Phonemes](#customizing-phonemes)
     - [Overriding Phoneme Sequence Mappings](#overriding-phoneme-sequence-mappings)
     - [Postprocessing Strokes](#postprocessing-strokes)
-- [Combine Dictionaries](#combine-dictionaries)
+- [Merge Dictionaries](#merge-dictionaries)
   - [Usage](#usage-1)
 - [Sort Words By Frequency](#sort-words-by-frequency)
   - [Usage](#usage-2)
@@ -32,6 +34,36 @@ cd steno-tools
 pip install -r requirements.txt
 ```
 
+## Basic Usage
+
+Run the tools via:
+
+```
+python src/steno_tools/cli.py <subcommand> <arg1> <arg2> ...
+```
+
+You can view the available commands via
+```
+python src/steno_tools/cli.py -h
+```
+To get more information about a specific subcommand, run:
+```
+python src/steno_tools/cli.py <subcommand> -h
+```
+
+There are currently three subcommands:
+- `generate`: Generate a phonetic steno dictionary. This can be useful for rapidly building a base phonetic dictionary that you'll likely want to add custom briefs to. It can also be useful update your theory by adding or modifying some of the phonetic rules.
+- `merge`: Merge JSON dictionaries within a directory into one dictionary. This can be useful for organizing your dictinoary into different categories but then combining it all into one dictionary to more easily toggle it on and off.
+- `sort-words`: Sort words in one file by their order in a different file. This can be useful by specifying words that you want to add to your dictionary and then as the second file use a file that lists words based on their frequency (the second file can contain words that aren't in the first file).
+
+### Suggested Workflow
+
+To generate a phonetic dictionary, the suggested workflow is:
+1. Compile a list of words to include in the dictionary. Use the `sort-words` command in conjuction with a file listing words by frequency to sort them by frequency; then when the dictionary is generated and two words have the same steno output, the higher-frequency one will have priority.
+2. Use the `generate` command to create a phonetic dictionary for those words.
+3. Place the generated dictionary in a folder such as `english`. Then add your custom briefs to a separate dictionary: `english/briefs.json`.
+4. Use the `merge` command to combine the dictionaries within `english` into a single dictionary. Load this dictionary into your steno software instead of loading the phonetic and breifs dictionaries separately.
+
 ## Generate a Phonetic Dictionary
 
 Steno Tools allows you to generate a phonetic steno dictionary by providing a list of words to generate strokes for and specifying how each phoneme maps to steno keys. This can be very useful for generating a base phonetic dictionary that you can then manually add briefs to.
@@ -40,20 +72,19 @@ Steno Tools allows you to generate a phonetic steno dictionary by providing a li
 
 1. Download a CSV file that maps words to their pronunciation in IPA. A good choice is to go to https://github.com/open-dict-data/ipa-dict/releases/tag/1.0 and download the `csv.zip` file, unzip it, and extract the file for your language (e.g., `en_US.csv` for American English).
 2. Create a file containing the words that you want to include in the generated dictionary. There should be one word per line. A good option is to download the list of most frequently used English words from https://www.kaggle.com/datasets/rtatman/english-word-frequency and then clean it up by removing the comma and number after each word, capitalizing certain words, and anything else you want to do.
-3. In a terminal, go into the `generator` directory of this repository.
-4. In a terminal, run
+3. In a terminal, run
 ```
-python generate_phonetic_dictionary.py /path/to/en_US.csv /path/to/your_word_list --config_file generator/configs/config.yaml
+python src/steno_tools/cli.py generate --ipa-notation /path/to/en_US.csv --words /path/to/your_word_list.txt --config configs/config.yaml
 ```
-5. View the generated dictionary in `output.json`.
+4. View the generated dictionary in `output.json`.
 
 To write the emitted logs to `logs.txt` rather than to the console, append ` 2> logs.txt` to your command.
 
-For more usage information, run `python generate_phonetic_dictionary.py -h`.
+For more usage information, run `python src/steno_tools/cli.py generate -h`.
 
 ### Default Theory
 
-By default the mapping from phonemes to steno keys largely follows [Plover Theory](https://www.artofchording.com/introduction/theories-and-dictionaries.html#plover-theory). A few exceptions are that left-side `z` is formed by `SWR-` and right-side `v` is `-FB`. For a more complete mapping of phonemes to keys, open `generator/configs/config.yaml` and look at the `vowels` and `consonants` sections. The phonemes in those sections are specified via the [International Phonetic Alphabet](https://en.wikipedia.org/wiki/International_Phonetic_Alphabet) (IPA). If you're not familiar with IPA you can look at the examples for each phoneme in `config.yaml`.
+By default the mapping from phonemes to steno keys largely follows [Plover Theory](https://www.artofchording.com/introduction/theories-and-dictionaries.html#plover-theory). A few exceptions are that left-side `z` is formed by `SWR-` and right-side `v` is `-FB`. For a more complete mapping of phonemes to keys, open `configs/config.yaml` and look at the `vowels` and `consonants` sections. The phonemes in those sections are specified via the [International Phonetic Alphabet](https://en.wikipedia.org/wiki/International_Phonetic_Alphabet) (IPA). If you're not familiar with IPA you can look at the examples for each phoneme in `config.yaml`.
 
 After strokes are generated phonetically, there some postprocessing that's done by default before writting the final dictionary. You can disable this postprocessing or specify your own rules in the `postprocessing` section. The default postprocessing consists of:
 1. Strokes can use the `-F` for a right-side `s` sound, but if the `s` sound is the last sound in the syllable it must be produced with the `-S` key.
@@ -64,7 +95,7 @@ After strokes are generated phonetically, there some postprocessing that's done 
 
 ### Customizing the Default Theory
 
-The file `generator/configs/config.yaml` specifies how strokes are generated for words. You can update this file to customize the generated theory in almost any way.
+The file `configs/config.yaml` specifies how strokes are generated for words. You can update this file to customize the generated theory in almost any way.
 
 If you want to make a customization that's not covered in the following subsections, you'll have to make changes to the Python files. In that case, please consider making a pull request with the changes, or ask for the feature by raising a GitHub Issue so that more people can benefit from the desired feature.
 
@@ -120,18 +151,20 @@ For each `drop_vowels` rule, you can specify what the left and right consonants 
 
 You can enabled the `append_disambiguator_stroke` setting so that when two different words map to the same sequence of strokes, one of the sequences gets appended with a certain stroke until the resulting sequence has no conflicts. The `disambiguator_stroke` field specifies which stroke is appended. The sequence that gets appended to is the one that appears later in the file containing a list of words to generate strokes for; so if that list is sorted so more frequent words are at the top, then the sequence for the less frequent word will get appended to.
 
-## Combine Dictionaries
+## Merge Dictionaries
 
 You may want to split your steno dictionaries into different files for better organization, but be able to easily toggle them on and off en masse. The `combine_dictionaries.py` script allows you to combine all the dictionaries in a specified directory into a single dictionary. This can be helpful if you want to split your main dictionary into normal words, proper nouns, written numbers, dates, etc. but you know that whenever you want one of these dictionaries to be active, you want them all to be active.
 
 ### Usage
 
 1. In a terminal, run `cd /path/to/your/dictionaries`
-2. Run `python /path/to/steno-tools/combine_dictionaries.py <directory>` where `<directory>` is the name of the folder containing the dictionaries you want to combine.
+2. Run `python src/steno_tools/cli.py merge <directory>` where `<directory>` is the name of the folder containing the dictionaries you want to combine.
 
-By default, only JSON files directly in the specified directory will be merged, but you can recursively search all directories with the `--recursive` flag. If multiple files have an entry for the same stroke sequence, the first entry will have priority and later entries will be ignored. Files are searched alphabetically but filename portions with numbers are sorted by the numbers; so if you have three files `priority-1-prefixes.json`, `priority-5-names.json`, and `priority-20-other.json`, they will be searched in that order, NOT as `priority-1-prefixes.json`, `priority-20-other.json`, `priority-5-names.json`. Use the flag `-v` or `-vv` to get more information on which files are searched when for your specific directory structure.
+By default, only JSON files directly in the specified directory will be merged, but you can recursively search all directories with the `--recursive` flag.
 
-For more usage information, run `python /path/to/steno-tools/combine_dictionaries.py -h`.
+If multiple files have an entry for the same stroke sequence, the first entry will have priority and later entries will be ignored. Files are searched alphabetically but filename portions with numbers are sorted by the numbers; so if you have three files `priority-1-prefixes.json`, `priority-5-names.json`, and `priority-20-other.json`, they will be searched in that order, NOT as `priority-1-prefixes.json`, `priority-20-other.json`, `priority-5-names.json`. Use the flag `-v` or `-vv` to get more information on which files are searched when for your specific directory structure.
+
+For more usage information, run `python src/steno_tools/cli.py merge -h`.
 
 ## Sort Words By Frequency
 
@@ -143,14 +176,14 @@ You may want to sort a list of words by freqency so you can add more frequent wo
 To sort a list of words by their order in a different file, run the following.
 
 ```
-python /path/to/steno-tools/sort_by_frequency.py  --word-list /your/words_to_sort.txt --frequency-file /many/words_by_frequency.txt --output-file output.txt
+python src/steno_tools/cli.py sort-words --words /path/to/words_to_sort.txt --canonical-order /path/to/sorted_words.txt --output output.txt
 ```
 
 Both input files should have exactly one word per line and nothing else.
 
-Words in the word list file that are not in the frequency list file are printed to the console. If you just want to see which words in the word list file are not in the frequency file, without writing the resulting sorted list to a file, use the `--no-output` flag instead of `--output-file`.
+Words in the word list file that are not in the canonical order file are printed to the console. If you just want to see which words in the word list file are not in the canonical order file, without writing the resulting sorted list to a file, use the `--no-output` flag instead of `--output`.
 
-For more usage information, run `python /path/to/steno-tools/sort_by_frequency.py -h`
+For more usage information, run `python src/steno_tools/cli.py sort-words -h`
 
 ## License
 
