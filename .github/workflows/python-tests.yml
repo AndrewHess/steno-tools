@@ -22,8 +22,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest
+          pip install poetry
       - name: Run tests
-        run: |
-          cd generator
-          python -m pytest ../tests/generator
-
+        run: poetry run pytest
