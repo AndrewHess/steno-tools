@@ -1,8 +1,8 @@
 import copy
 import pytest
 
-from steno import Key, Stroke, StrokeSequence
-from steno import MissingDashInStrokeError, OutOfStenoOrderError
+from steno_tools.generator.steno import Key, Stroke, StrokeSequence
+from steno_tools.generator.steno import MissingDashInStrokeError, OutOfStenoOrderError
 
 
 #####################################################################

@@ -1,4 +1,4 @@
-from syllable import Syllable, SyllableRegion, SyllableAtom
+from steno_tools.generator.syllable import Syllable, SyllableRegion, SyllableAtom
 
 
 #####################################################################
